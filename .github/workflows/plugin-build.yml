@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - 'build-plugin-*'
+jobs:
+  release:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
+    name: Vagrant VMware Desktop Plugin
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v1
+      - name: Setup Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          architecture: 'x64'
+      - name: Build Vagrant VMware Desktop Plugin
+        run: ./.ci/build-plugin.sh
+        env:
+          VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
+        working-directory: ${{github.workspace}}
+      - name: Clean Workspace
+        if: always()
+        run: rm -rf ${{ github.workspace }}

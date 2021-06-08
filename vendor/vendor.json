@@ -1,0 +1,91 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "GCTVJ1J/SGZstNZauuLAnTFOhGA=",
+			"path": "github.com/armon/go-radix",
+			"revision": "1fca145dffbcaa8fe914309b1ec0cfc67500fe61",
+			"revisionTime": "2017-07-27T15:54:43Z"
+		},
+		{
+			"checksumSHA1": "oTmBS67uxM6OXB/+OJUAG9LK4jw=",
+			"path": "github.com/bgentry/speakeasy",
+			"revision": "4aabc24848ce5fd31929f7d1e4ea74d3709c14cd",
+			"revisionTime": "2017-04-17T20:07:03Z"
+		},
+		{
+			"checksumSHA1": "AA0aYmdg4pb5gPCUSXg8iPzxLag=",
+			"path": "github.com/hashicorp/go-hclog",
+			"revision": "ca137eb4b4389c9bc6f1a6d887f056bf16c00510",
+			"revisionTime": "2017-10-05T15:17:51Z"
+		},
+		{
+			"checksumSHA1": "g7uHECbzuaWwdxvwoyxBwgeERPk=",
+			"path": "github.com/hashicorp/go-multierror",
+			"revision": "83588e72410abfbe4df460eeb6f30841ae47d4c4",
+			"revisionTime": "2017-06-22T06:09:55Z"
+		},
+		{
+			"checksumSHA1": "U6lX43KDDlNOn+Z0Yyww+ZzHfFo=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "fc9e8d8ef48496124e79ae0df75490096eccf6fe",
+			"revisionTime": "2017-03-22T23:44:13Z"
+		},
+		{
+			"checksumSHA1": "KXrCoifaKi3Wy4zbCfXTtM/FO48=",
+			"path": "github.com/mitchellh/cli",
+			"revision": "b633c78680fa6fb27ac81694f38c28f79602ebd9",
+			"revisionTime": "2017-08-14T15:07:37Z"
+		},
+		{
+			"checksumSHA1": "6OEUkwOM0qgI6YxR+BDEn6YMvpU=",
+			"path": "github.com/posener/complete",
+			"revision": "f4461a52b6329c11190f11fe3384ec8aa964e21c",
+			"revisionTime": "2017-07-30T19:30:24Z"
+		},
+		{
+			"checksumSHA1": "NB7uVS0/BJDmNu68vPAlbrq4TME=",
+			"path": "github.com/posener/complete/cmd",
+			"revision": "f4461a52b6329c11190f11fe3384ec8aa964e21c",
+			"revisionTime": "2017-07-30T19:30:24Z"
+		},
+		{
+			"checksumSHA1": "kuS9vs+TMQzTGzXteL6EZ5HuKrU=",
+			"path": "github.com/posener/complete/cmd/install",
+			"revision": "f4461a52b6329c11190f11fe3384ec8aa964e21c",
+			"revisionTime": "2017-07-30T19:30:24Z"
+		},
+		{
+			"checksumSHA1": "DMo94FwJAm9ZCYCiYdJU2+bh4no=",
+			"path": "github.com/posener/complete/match",
+			"revision": "f4461a52b6329c11190f11fe3384ec8aa964e21c",
+			"revisionTime": "2017-07-30T19:30:24Z"
+		},
+		{
+			"checksumSHA1": "ZdFZFaXmCgEEaEhVPkyXrnhKhsg=",
+			"path": "golang.org/x/sys/windows/registry",
+			"revision": "9f7170bcd8e9f4d3691c06401119c46a769a1e03",
+			"revisionTime": "2017-08-15T08:36:29Z"
+		},
+		{
+			"checksumSHA1": "VNlkHemg81Ba7ElHfKKUU1h+U1U=",
+			"path": "golang.org/x/sys/windows/svc",
+			"revision": "316e9227019baa6ea3f76ea21538bab101fd1182",
+			"revisionTime": "2017-11-29T13:43:50Z"
+		},
+		{
+			"checksumSHA1": "uVlUSSKplihZG7N+QJ6fzDZ4Kh8=",
+			"path": "golang.org/x/sys/windows/svc/eventlog",
+			"revision": "316e9227019baa6ea3f76ea21538bab101fd1182",
+			"revisionTime": "2017-11-29T13:43:50Z"
+		},
+		{
+			"checksumSHA1": "+OPy/ga50ikLv5w5Pf4WvBYThrQ=",
+			"path": "golang.org/x/sys/windows/svc/mgr",
+			"revision": "316e9227019baa6ea3f76ea21538bab101fd1182",
+			"revisionTime": "2017-11-29T13:43:50Z"
+		}
+	],
+	"rootPath": "github.com/hashicorp/vagrant-vmware-desktop"
+}

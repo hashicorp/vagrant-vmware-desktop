@@ -1,0 +1,30 @@
+on:
+  push:
+    branches:
+      - 'build-*'
+    tags:
+      - 'utility-v*'
+      - '!utility-v*\+*'
+jobs:
+  build-utilities:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    name: Utility Builds
+    runs-on: self-hosted
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v1
+      - name: Build Utilities
+        run: ./.ci/build-packages.sh
+        working-directory: ${{ github.workspace }}
+        env:
+          PKT_SECRET_PHRASE: ${{ secrets.ASSETS_PASSWORD }}
+          PKT_SignKeyPassword: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          PKT_VAGRANT_RUNNER_SignKeyPassword: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+          PKT_VAGRANT_RUNNER_CODE_SIGN_PASS: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          PKT_VAGRANT_RUNNER_NOTARIZE_USERNAME: releases@hashicorp.com
+          PKT_VAGRANT_RUNNER_NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZE_PASSWORD }}
+          FASTLY_API_TOKEN: ${{ secrets.FASTLY_API_TOKEN }}
+          VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
+      - name: Clean Workspace
+        if: always()
+        run: rm -rf ${{ github.workspace }}

@@ -1,0 +1,634 @@
+en:
+  hashicorp:
+    vagrant_vmware_desktop:
+      already_running: |-
+        Machine is already running.
+      booted_and_ready: |-
+        The machine is booted and ready!
+      booting: |-
+        Starting the VMware VM...
+      cloning: |-
+        Cloning VMware VM: '%{name}'. This can take some time...
+      configuring_networks: |-
+        Configuring network adapters within the VM...
+      destroying: |-
+        Deleting the VM...
+      disk_not_shrinking: |-
+        Shrinking disks is not supported. Not shrinking disk %{path}
+      discarding_suspended_state: |-
+        Discarding suspended state...
+      enabling_adapters: |-
+        Preparing network adapters...
+      forward_port_entry: |-
+        -- %{guest_port} => %{host_port}
+      forwarding_ports: |-
+        Forwarding ports...
+      mac_to_ip_mapping: |-
+        DHCP address reserved for default NAT %{address}
+      not_created: |-
+        VM not created. Moving on...
+      not_running: |-
+        VM not running. Please start the VM with `vagrant up` first.
+      sharing_folder_single: |-
+        -- %{hostpath}: %{guestpath}
+      sharing_folders: |-
+        Enabling and configuring shared folders...
+      snapshot_deleting: |-
+        Deleting the snapshot '%{name}'...
+      snapshot_restoring: |-
+        Restoring the snapshot '%{name}'...
+      snapshot_saving: |-
+        Snapshotting VM as '%{name}'...
+      stopping: |-
+        Stopping the VMware VM...
+      suspending: |-
+        Suspending the VMware VM...
+      verifying_vmnet: |-
+        Verifying vmnet devices are healthy...
+      skipping_vmnet_verify: |-
+        Skipping vmnet device verification, verify_vmnet is set to false.
+      waiting_for_address: |-
+        Waiting for the VM to receive an address...
+      waiting_for_boot: |-
+        Waiting for the VM to finish booting...
+      waiting_for_hgfs: |-
+        Waiting for HGFS to become available...
+      waiting_for_vmx_halt: |-
+        Waiting for the VMX process to go away...
+
+      states:
+        short_not_created: |-
+          not created
+        short_not_running: |-
+          not running
+        short_running: |-
+          running
+        short_suspended: |-
+          suspended
+        long_not_created: |-
+          The VMware machine has not yet been created. Run `vagrant up`
+          to create the machine. If a machine is not created, only the
+          default provider will be shown. Therefore, if a provider is not listed,
+          then the machine is not created for that provider.
+        long_not_running: |-
+          The VM is powered off. To restart the VM, run `vagrant up`
+        long_running: |-
+          The VM is running. To stop this VM, you can run `vagrant halt` to
+          shut it down, or you can run `vagrant suspend` to simply suspend
+          the virtual machine. In either case, to restart it again, run
+          `vagrant up`.
+        long_suspended: |-
+          The VM is suspended. To resume this VM, run `vagrant up`.
+
+      config:
+        non_nat_adapter_zero: |-
+          The VMware adapter currently requires the first network
+          adapter to be a NAT device. This limitation may be removed in a
+          future version.
+        base_address_invalid: |-
+          The IP address provided for `base_address` is invalid.
+        base_mac_invalid: |-
+          The MAC address provided for `base_mac` is invalid. Ensure the MAC
+          address provided is valid and try starting the guest again.
+        base_address_without_mac: |-
+          The `base_mac` option must be configured when the
+          `base_address` option is set.
+        synced_folder_id_invalid: |-
+          VMware requires a shared folder ID made up of characters,
+          numbers, hyphens, and underscores. By default, Vagrant sets the
+          ID of shared folders to the guest path. This is incompatible with
+          VMware. Please override the Vagrant default by either setting
+          the `:id` option on your synced folder definition, or setting
+          the `:vmware__id` option if you want only VMware to see this setting.
+        allowlist_verify_value_invalid: |-
+          The value provided for `allowlist_verified` is invalid. Please update
+          with a valid value:
+
+            %{valid_values}
+      alert: |-
+        [%{date}]:
+          %{message}
+
+          - %{url}
+      version_upgrade_available: |-
+        A new version of Vagrant VMware %{name} is available: %{latest_version}!
+        To upgrade visit: %{download_url}
+      version:
+        plugin_latest: |-
+          A new version of the Vagrant VMware plugin is currently available
+          for upgrade.
+
+            Installed Version: %{current_version}
+            Latest Version:    %{latest_version}
+        plugin_upgrade_howto: |-
+          Vagrant can install the latest version of the Vagrant VMware plugin
+          by running the following command:
+
+            vagrant plugin update vagrant-vmware-desktop
+
+          To see what has changed in the latest release, view the CHANGELOG below:
+
+            %{changelog_url}
+        utility_latest: |-
+          A new version of the Vagrant VMware utility is currently available
+          for upgrade.
+
+            Installed Version: %{current_version}
+            Latest Version:    %{latest_version}
+        utility_upgrade_howto: |-
+          To upgrade to the latest version of the Vagrant VMware utility, visit
+          the downloads page at the URL below and download the package appropriate
+          for your machine:
+
+            %{download_url}
+
+          To see what has changed in the latest release, view the CHANGELOG below:
+
+            %{changelog_url}
+      errors:
+        box_vmx_file_not_found: |-
+          A "vmx" file was not found in the box specified. A "vmx" file is
+          required to clone, boot, and manage VMware machines. Please report
+          this issue to the maintainer of the box you're using, as this is
+          an issue with the creation of the box itself.
+        base_address_range: |-
+          The address provided for `base_address` is not within the allowed range
+          of DHCP addresses. Please update the configured address to be within the
+          allowed range:
+
+            %{range_start} - %{range_end}
+        cannot_get_ssh_info: |-
+          There was a problem retrieving the SSH info from the guest. There are
+          a variety of root issues that can cause this. If this error continues
+          to occur across several attempts, it may indicate a problem with the
+          base box being used. If this error occurs across multiple boxes, it
+          may indicate a VMware configuration problem. Persistent problems can
+          be reported to support@hashicorp.com.
+        clone_folder_exists: |-
+          The clone folder that Vagrant is attempting to use to import
+          the VMware box has existed repeatedly 10 times while generating
+          random filenames. This is not sane behavior of your system. Please
+          restart your computer and try again as an attempt to add entropy
+          to your system.
+        clone_folder_not_folder: |-
+          The clone directory given is not a directory. This is an internal
+          error and should be reported as a bug to support@hashicorp.com.
+
+          Path: %{path}
+        disk_not_created: Disk %{name} not created!
+        disk_not_resized_snapshot: |-
+          Disk not resized because snapshots are present! Vagrant can
+          not resize a disk if snapshots exist for a VM. If you wish to resize
+          disk please remove snapshots associated with the VM.
+
+          Path: %{path}
+        destroy_invalid_state: |-
+          The VMware machine cannot be destroyed beacuse it is still
+          running. Please make sure the machine is properly halted before
+          attempting to delete.
+        driver_clone_permission_failure: |-
+          The VMware VM could not be cloned due to permission errors!
+          Please verify that the destination directory can be read and written
+          to. The destination directory is printed below:
+
+          %{destination}
+        driver_dhcp_leases_read_perms: |-
+          Vagrant couldn't read the VMware DHCP leases file due to permissions
+          issues! Please make sure that the file below has sufficient read
+          permissions so that the user running Vagrant can read it.
+
+          %{path}
+        driver_invalid_response: |-
+          The Vagrant VMware Utility provided an unexpected response. Please
+          run the command again.
+        driver_missing_dhcp_leases_file: |-
+          The DHCP leases file for the vmnet device '%{device}' could
+          not be found. Vagrant requires this file to find the IP address
+          given by DHCP to your machine. Please report this as a bug along
+          with log output.
+        driver_missing_fp_nat_conf: |-
+          The nat configuration file for the vmnet device '%{device}' is
+          missing. Verify that the VMware device '%{device}' is a NAT
+          device.
+        driver_missing_networking_file: |-
+          The file containing the list of VMware networking devices could
+          not be found. Networks can not be setup. Please report this as a bug.
+        driver_missing_service_starter: |-
+          The binary to start VMware services could not be found. This
+          is required in order to modify networking files. This can be caused
+          by a broken Fusion installation or an invalid Fusion version.
+          Please report a bug.
+        driver_missing_vmnet_cli: |-
+          The `vmnet-cli` binary could not be found. VMware %{product} typically
+          ships with this binary which is required to control the network
+          devices. Vagrant could not find it. Please report this as a bug!
+        driver_missing_vmx: |-
+          The VMware %{product} driver was started with a path to a VM that
+          doesn't exist.
+
+          Path: %{vm_dir}
+        driver_missing_vmx_cli: |-
+          The "vmware-vmx" application could not be found. The VMware
+          provider is responsible for finding this application. Please
+          report a bug with debug output attached (by setting VAGRANT_LOG to
+          "debug").
+        driver_networking_file_not_found: |-
+          The file which defines networking interfaces for VMware %{product}
+          could not be found. Please verify %{product} is installed properly
+          and try again. If this problem persists, please contact
+          support.
+        driver_networking_file_bad_permissions: |-
+          A file that the Vagrant VMware %{product} provider must modify has
+          bad permissions. Please make sure that the user running Vagrant can
+          read the following file:
+
+          %{path}
+        driver_read_version_failed: |-
+          The VMware %{product} provider failed to determine the version of
+          VMware %{product} installed. This is often indicative of other
+          errors in the installation of VMware %{product}. The error
+          output from attempting to determine the version is shown below,
+          in case it helps point out the issue.
+
+          %{output}
+        driver_vmnet_configure_failed: |-
+          Vagrant failed to configure the VMware network interfaces! The
+          output of the failed command, if any, is below.
+
+          %{output}
+        driver_vmnet_start_failed: |-
+          Vagrant failed to start the VMware network interfaces! The output
+          of the failed command, if any, is below. The usual cause for this
+          is invalid configuration of the VMware network components. If
+          the problem persists, please contact support.
+
+          %{output}
+        driver_vmnet_stop_failed: |-
+          Vagrant failed to stop the VMware network interfaces! The output
+          of the failed command, if any, is below.
+
+          %{output}
+        feature_not_supported: |-
+          Vagrant is unable to perform the requested action due to limitations
+          imposed by the current VMware %{product} license in use. To successfully
+          perform the requested action, the VMware %{product} license must be
+          upgraded from a standard license to a professional license.
+        forwarded_ports_collide_with_existing_nat: |-
+          Some of the defined forwarded ports would collide with existing
+          forwarded ports on VMware network devices. This can be due to
+          existing Vagrant-managed VMware machines, or due to manually
+          configured port forwarding with VMware. Please fix the following
+          port collisions and try again:
+
+          %{ports}
+        forwarded_port_no_guest_ip: |-
+          The IP of the guest VM could not be detected for setting up
+          forwarded ports. This is not common. However, a destroying the VM
+          and recreating it usually fixes this. Please run `vagrant destroy`
+          then `vagrant up`. Alternatively, a `vagrant reload` sometimes
+          fixes this.
+        fusion_upgrade_required: |-
+          You're using a license that doesn't allow you to use the installed
+          version of Fusion. This error message occurs if you upgraded Fusion
+          without also upgrading your license. Please upgrade your license to
+          unlock features and support for the latest version of VMware Fusion,
+          or revert your version of Fusion back to the supported version.
+          You can upgrade your license by going to the following URL:
+
+          http://license.hashicorp.com/upgrade/vmware
+
+        guest_missing_hgfs: |-
+          HGFS was never found on the running virtual machine. This must be
+          installed either through VMware tools or Open VM Tools. HGFS is
+          required for shared folders to work properly. Please install either
+          the VMware tools or Open VM Tools and try again.
+        hc_license: |-
+          Your HashiCorp license doesn't work with '%{product}'. Please verify
+          you purchased the correct license. If you have any problems, please
+          contact support at support@hashicorp.com.
+        helper_failed: |-
+          %{output}
+        helper_install_failed: |-
+          Installing the Vagrant VMware sudo helper has failed. In order to
+          install the sudo helper, Vagrant must chown the helper as root
+          and enable setuid on the binary. The most common cause of this error
+          is that the filesystem that the Vagrant home directory folder is in
+          doesn't support setuid.
+
+          Please check for this, fix any issues, and run Vagrant to try again
+          If this problem persists, please contact support.
+        helper_invalid_command: |-
+          Invalid command to Vagrant VMware helper: %{command}
+        helper_not_root: |-
+          The Vagrant VMware helper must be run as root.
+        helper_requires_command: |-
+          The Vagrant VMware sudo helper requires a command.
+        helper_requires_data_file: |-
+          The Vagrant VMware sudo helper requires a valid data
+          file to be passed to it.
+        helper_requires_reinstall: |-
+          Vagrant has detected that the VMware plugin is not properly setup.
+          Please reinstall the VMware plugin and run this command again. If
+          this error persists please contact support.
+        helper_wrapper_missing: |-
+          The Vagrant VMware sudo helper wrapper is missing. This
+          installation of the VMware provider is broken. Please uninstall
+          and reinstall.
+        linux_mount_gid_failed: |-
+          Vagrant failed to determine group ID for synced folder path. This
+          can be fixed by manually defining the group ID within the Vagrantfile.
+
+            Synced Folder: %{folder_name}
+        linux_mount_uid_failed: |-
+          Vagrant failed to determine user ID for synced folder path. This
+          can be fixed by manually defining the user ID within the Vagrantfile.
+
+            Synced Folder: %{folder_name}
+        linux_service_init_script_missing: |-
+          The init script for managing VMware services could not be found.
+          Vagrant needs this script in order to verify that VMware is properly
+          running and also to attempt to start services if they're not.
+          Please verify VMware is properly installed and try again. If
+          the problem persists, please contact support.
+        missing_nat_device: |-
+          Failed to locate the VMware NAT device. Please validate your VMware
+          network settings and try again.
+        networking_file_missing_version: |-
+          The VMware network devices file is missing the "VERSION"
+          field. The Vagrant provider for can not safely modify
+          this file without knowing the version. Please verify your
+          copy of VMware is installed properly.
+        networking_file_unsupported_version: |-
+          The VMware network devices file is reporting a version
+          that Vagrant cannot understand. Vagrant requires the "1,0" version
+          for this file. Reported version: %{reported_version}
+
+          Please contact support for more information.
+        networking_host_only_collision: |-
+          The host only network with the IP '%{ip}' would collide with
+          another device '%{device}'. This means that VMware cannot create
+          a proper networking device to route to your VM. Please choose
+          another IP or shut down the existing device.
+        networking_no_slots_for_high_level: |-
+          There is no available slots on the VMware VM for the configured
+          high-level network interfaces. "private_network" and "public_network"
+          network configurations consume a single network adapter slot on the
+          virtual machine. VMware limits the number of slots to 8, and it
+          appears that every slot is in use. Please lower the number of used
+          network adapters.
+        nfs_no_network: |-
+          NFS requires a static IP to be configured. Please configure
+          a private network with a static IP.
+        package_not_supported: |-
+          The "package" command is not supported with VMware. We recommend
+          taking a look at Packer (www.packer.io) as an option for creating
+          VMware images.
+        routing_table_command_not_found: |-
+          The external program used to read TCP/IP routing tables in order
+          to protect you against creating network collisions could not be
+          found. On Linux and Mac OS X, this is `netstat`. Please make sure
+          this is on your PATH. It is generally installed with your
+          operating system.
+        routing_table_load_error: |-
+          Failed to load the TCP/IP routing tables for your computer! Vagrant
+          does this in order to verify you're not creating a network that
+          collides with any others. The error is reported below:
+
+          %{output}
+        routing_table_unsupported_os: |-
+          Vagrant can't read the routing tables on this operating system.
+          Vagrant must be able to do this in order to check for network
+          collisions in order to ensure a good Vagrant experience. Please
+          report a bug.
+        shared_folder_symlink_failed: |-
+          There was an error attempting to symlink your shared folders into
+          place. If you don't want to symlink your shared folders (and keep
+          them into the default place), set the `:vmware__symlink` option to
+          `false` on the synced folders.
+        single_machine_lock: |-
+          Another instance of Vagrant is running operations on the same
+          virtual machine. The VMware provider for Vagrant limits
+          operations on one machine to be done by only one process at a time.
+          Note however that you can run multiple commands against different
+          virtual machines in parallel.
+        start_timeout: |-
+          Vagrant timed out while trying to start the VMware machine. This
+          error is caused by VMware never successfully starting the machine.
+          This can often be fixed by simply retrying. If the error persists,
+          please verify that VMware is functional. This is not a Vagrant
+          issue.
+        utility_upgrade_required: |-
+          The currently running version of the Vagrant VMware utility is not
+          supported by this version of the Vagrant VMware desktop plugin.
+          Please install a supported version of the Vagrant VMware Utility
+          and run the command again.
+
+            Utility version:             %{utility_version}
+            Utility version requirement: %{utility_requirement}
+
+          Download the Vagrant VMware utility installer package for your
+          platform from the downloads page:
+
+            https://www.vagrantup.com/vmware/downloads.html
+        vmnet_device_create_failed: |-
+          Vagrant failed to create a new vmnet device for your configured
+          network settings! Please verify Workstation is working properly
+          and try again. Please contact support if the problem persists.
+        vmnet_device_route_conflict: |-
+          The VMware network device '%{device}' can't be started because
+          its routes collide with another device: '%{route_device}'. Please
+          either fix the settings of the VMware network device or stop the
+          colliding device. Your machine can't be started while VMware
+          networking is broken.
+
+          Routing to the IP '%{ip}' should route through '%{device}', but
+          instead routes through '%{route_device}'.
+        vmnet_devices_wont_start: |-
+          The VMware "vmnet" devices are failing to start. The most common
+          reason for this is collisions with existing network services. For
+          example, if a hostonly network space collides with another hostonly
+          network (such as with VirtualBox), it will fail to start. Likewise,
+          if forwarded ports collide with other listening ports, it will
+          fail to start.
+
+          Vagrant does its best to fix these issues, but in some cases it
+          cannot determine the root cause of these failures.
+
+          Please verify you have no other colliding network services running.
+          As a last resort, restarting your computer often fixes this issue.
+        vmnet_slots_full: |-
+          VMware Workstation on Windows limits the total number of vmnet
+          devices to 9. You have passed this point. Please open the virtual
+          network editor and remove some unneeded networks.
+        vmnet_no_ipv6: |-
+          The VMware product does not support IPv6 in a robust way like other
+          Vagrant providers. This is not a bug in Vagrant - the upstream
+          provider does not provide robust support for IPv6.
+        vmexec_error: |-
+          An error occurred while executing `%{executable}`, a utility for controlling
+          VMware machines. The command and output are below:
+
+          Command: %{command}
+
+          Stdout: %{stdout}
+
+          Stderr: %{stderr}
+        vmrun_error: |-
+          An error occurred while executing `vmrun`, a utility for controlling
+          VMware machines. The command and output are below:
+
+          Command: %{command}
+
+          Stdout: %{stdout}
+
+          Stderr: %{stderr}
+        vmrun_not_found: |-
+          The `vmrun` binary could not be found. This is normally packaged
+          with VMware. Please verify that VMware is properly installed
+          and try again.
+        vmware_linux_service_wont_start: |-
+          The VMware Linux services aren't running. Vagrant attempted to
+          start them for you but they wouldn't come up properly. Please verify
+          VMware is properly installed and that the services will start. The
+          services are usually exposed as a standard init script. If you just
+          installed VMware, you may need to reboot your system so the kernel
+          extensions are properly built and installed.
+        vnetlib_error: |-
+          An error occurred while modifying VMware network devices. The
+          command and output are shown below.
+
+          Command: %{command}
+
+          Stdout: %{stdout}
+
+          Stderr: %{stderr}
+        vnetlib_not_found: |-
+          The "vnetlib" utility could not be found. Vagrant uses this to
+          programmatically manage VMware network devices on Windows. This utility
+          installs with VMware Workstation. Please verify that Workstation is
+          properly installed and try again.
+        workstation_upgrade_required: |-
+          You're using a license that doesn't allow you to use the installed
+          version of Workstation. This error message occurs if you upgraded Workstation
+          without also upgrading your license. Please upgrade your license to
+          unlock features and support for the latest version of VMware Workstation,
+          or revert your version of Workstation back to the supported version.
+          You can upgrade your license by going to the following URL:
+
+          http://license.hashicorp.com/upgrade/vmware
+
+        driver_api_certificate_error: |-
+          Vagrant encountered an error while attempting to load the utility
+          service key file. This error can occur if the Vagrant VMware Utility
+          has not yet been installed, or if it was installed incorrectly. If
+          this error persists after running the Vagrant VMware Utility installer
+          again, please contact support at: support@hashicorp.com
+
+          Information about the Vagrant VMware Utility, including installation
+          instruction, can be found here:
+
+            https://www.vagrantup.com/docs/vmware/vagrant-vmware-utility.html
+
+            Path:  %{path}
+            Error: %{message}
+        driver_api_key_error: |-
+          Vagrant encountered an error while attempting to load the utility
+          service key file. This error can occur if the Vagrant VMware Utility
+          has not yet been installed, or if it was installed incorrectly. If
+          this error persists after running the Vagrant VMware Utility installer
+          again, please contact support at: support@hashicorp.com
+
+          Information about the Vagrant VMware Utility, including installation
+          instruction, can be found here:
+
+            https://www.vagrantup.com/docs/vmware/vagrant-vmware-utility.html
+
+            Path:  %{path}
+            Error: %{message}
+        driver_api_connection_failed: |-
+          Failed to connect the Vagrant VMware Utility service. If the Vagrant
+          VMware Utility package has not yet been installed, please download
+          and install the correct package for your system.
+
+            https://www.vagrantup.com/vmware/downloads.html
+
+          If the Vagrant VMware Utility service has been installed, ensure the
+          VMware application has been installed on the system. The Vagrant VMware
+          Utility service depends on the VMware application to be installed and
+          may not start until the VMware application is installed.
+
+          More information for the Vagrant VMware Utility Service is available
+          driver has not been installed, please install it. If the utility
+          driver has already been installed, ensure the service is running
+          and available.
+
+          Information about the Vagrant VMware Utility, including installation
+          instruction, can be found here:
+
+            https://www.vagrantup.com/docs/vmware/vagrant-vmware-utility.html
+        driver_api_request_unexpected_error: |-
+          Vagrant encountered an unexpected communications error with the
+          Vagrant VMware Utility driver. Please try to run the command
+          again. If this error persists, please contact support@hashicorp.com
+        driver_api_invalid_response: |-
+          Vagrant failed to properly process a result from the Vagrant VMware
+          Utility driver. Please try to run the command again. If this error
+          persists, please contact support@hashicorp.com
+        driver_api_port_forward_list_error: |-
+          Failed to receive list of currently used VMware port forwards. The
+          reported cause for the error:
+
+            %{message}
+        driver_api_device_create_error: |-
+          Vagrant failed to create a new VMware networking device. The following
+          error message was generated while attempting to create a new device:
+
+            %{message}
+
+          Please resolve any problems reported in the error message above and
+          try again.
+        driver_api_port_forward_error: |-
+          Vagrant failed to apply the requested port forward. The following
+          error message was generated while attempting to apply the port
+          forward rule:
+
+            %{message}
+
+          Please resolve any problems reported in the error message above and
+          try again.
+        driver_api_port_forward_prune_error: |-
+          Vagrant encountered an error while attempting to prune unused
+          port forward entries:
+
+            %{message}
+        driver_api_device_list_error: |-
+          An error was encountered while generating the current list of
+          available VMware adapters in use on this system.
+
+            %{message}
+
+          Please resolve any problems reported in the error message above and
+          try again.
+        driver_api_vmware_version_detection_error: |-
+          Vagrant encountered an error while attempting to inspect VMware
+          for current version information:
+
+            %{message}
+        driver_api_vmware_paths_detection_error: |-
+          Vagrant encountered an error while attempting to inspect VMware
+          for required installation information:
+
+            %{message}
+        driver_api_address_reservation_error: |-
+          Vagrant encountered an error while attempting to create a DHCP
+          reservation for the base adapter.
+
+            Address: %{address}
+            Device:  %{device}
+            MAC:     %{mac}
+            Reason:  %{message}
+      disks: 
+        cap:
+          disks:
+            floppy_not_supported: "Floppy disk configuration not yet supported. Skipping disk '%{name}'..."
+
