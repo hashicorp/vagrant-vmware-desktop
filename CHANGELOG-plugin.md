@@ -1,4 +1,6 @@
-## 2.1.6 (UNRELEASED)
+## 3.0.0 
+
+- Open source plugin, remove encoding
 
 ## 2.1.5
 
