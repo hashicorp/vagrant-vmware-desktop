@@ -27,4 +27,14 @@ fi
 # Build and publish our gem
 publish_to_rubygems
 
+# Get the path of our new gem
+g=(vagrant*.gem)
+gem=$(printf "%s" "${g}")
+
+# Upload built gem to the asset store
+upload_assets "${gem}"
+
+# Publish new gem to hashigems
+publish_to_hashigems "${gem}"
+
 slack -m "New version of vagrant-vmware-desktop published: v${version}"
