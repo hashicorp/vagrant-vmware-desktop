@@ -32,6 +32,7 @@ if [ ! -e "${ldir}/.complete" ]; then
                 echo "🛑 ERROR: Failed to extract role credentials 🛑"
                 exit 1
             fi
+            unset output
             export AWS_ACCESS_KEY_ID="${id}"
             export AWS_SECRET_ACCESS_KEY="${key}"
             export AWS_SESSION_TOKEN="${token}"

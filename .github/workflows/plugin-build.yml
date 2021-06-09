@@ -18,6 +18,13 @@ jobs:
       - name: Build Vagrant VMware Desktop Plugin
         run: ./.ci/build-plugin.sh
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ASSUME_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          HASHIBOT_EMAIL: ${{ secrets.HASHIBOT_EMAIL }}
+          HASHIBOT_TOKEN: ${{ secrets.HASHIBOT_TOKEN }}
+          HASHIBOT_USERNAME: ${{ secrets.HASHIBOT_USERNAME }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
         working-directory: ${{github.workspace}}
       - name: Clean Workspace
