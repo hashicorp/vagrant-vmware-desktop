@@ -2,10 +2,10 @@ Gem::Specification.new do |s|
   s.name          = "vagrant-vmware-desktop"
   s.version       = File.read(File.expand_path("../versions/desktop.txt", __FILE__))
   s.platform      = Gem::Platform::RUBY
-  s.authors       = "Mitchell Hashimoto"
-  s.email         = "biz@hashicorp.com"
+  s.authors       = "Vagrant Team"
+  s.email         = "vagrant@hashicorp.com"
   s.homepage      = "http://www.vagrantup.com"
-  s.license       = "Mozilla Public License 2.0"
+  s.license       = "MPL-2.0"
   s.summary       = "Enables Vagrant to power VMware Workstation/Fusion machines."
   s.description   = "Enables Vagrant to power VMware Workstation/Fusion machines."
 
