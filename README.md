@@ -68,15 +68,3 @@ expects to find them:
 $ sudo mkdir /opt/vagrant-vmware-desktop
 $ sudo ln -s PATH /opt/vagrant-vmware-desktop/certificates
 ```
-
-## Releasing
-
-This repository contains two separate projects:
-
-* Vagrant VMware Desktop
-* Vagrant VMware Utility
-
-The release process for these projects are similiar but slightly different based on the
-project.
-
-See the release documentation in the [Vagrant confluence page](https://hashicorp.atlassian.net/wiki/spaces/vagrant/pages/1039532466/Vagrant+VMware)
