@@ -744,5 +744,53 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
         instance.remove_disk_from_vmx("/some/file.txt", ["foo", "baz"])
       end
     end
+
+    describe "#snapshot_tree" do
+      let(:vmx) { double("vmx") }
+
+      context "with a simple hierarchy of snapshots" do
+        let(:vmrun_result){ double(stdout: """Total snapshots: 10
+Snapshot
+\tSnapshot 2
+\t\tSnapshot 3
+""") }
+        before do
+          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.path, "showTree").and_return(vmrun_result)
+        end
+
+        it "builds a snapshot tree" do
+          result = instance.snapshot_tree
+          expected_result = ["Snapshot", "Snapshot/Snapshot2", "Snapshot/Snapshot2/Snapshot3",]
+          expect(result == expected_result).to be_truthy
+        end
+      end
+     
+      context "with a complicated hierarchy of snapshots" do
+        let(:vmrun_result){ double(stdout: """Total snapshots: 10
+Snapshot
+\tSnapshot 2
+\t\tSnapshot 3
+\t\t\tSnapshot 6
+\t\tSnapshot 4
+\tSnapshot 5
+\t\tSnapshot 7
+\t\t\tSnapshot 8
+\t\t\t\tSnapshot 10
+\tSnapshot 9""") }
+        before do
+          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.path, "showTree").and_return(vmrun_result)
+        end
+
+        it "builds a snapshot tree" do
+          result = instance.snapshot_tree
+          expected_result = ["Snapshot", "Snapshot/Snapshot2", "Snapshot/Snapshot2/Snapshot3",
+            "Snapshot/Snapshot2/Snapshot3/Snapshot6", "Snapshot/Snapshot2/Snapshot4", 
+            "Snapshot/Snapshot5", "Snapshot/Snapshot5/Snapshot7", "Snapshot/Snapshot5/Snapshot7/Snapshot8",
+            "Snapshot/Snapshot5/Snapshot7/Snapshot8/Snapshot10", "Snapshot/Snapshot9"
+          ]
+          expect(result == expected_result).to be_truthy
+        end
+      end
+    end
   end
 end
