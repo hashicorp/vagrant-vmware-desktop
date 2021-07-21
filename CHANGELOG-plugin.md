@@ -1,3 +1,7 @@
+## 3.0.1
+
+- Fix bug with outputting a snapshot tree 
+
 ## 3.0.0 
 
 - Open source plugin, remove encoding
