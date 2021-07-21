@@ -835,12 +835,28 @@ module HashiCorp
 
         def snapshot_tree
           snapshots = []
+          snap_level = 0
           vmrun("listSnapshots", host_vmx_path, "showTree").stdout.split("\n").each do |line|
             if !line.include?("Total snapshot")
               # if the line starts with white space then it is a child
               # of the previous line
               if line.start_with?(/\s/)
-                name = "#{snapshots.last}/#{line.gsub(/\s/, "")}"
+                current_level = line.count("\t")
+                if current_level > snap_level
+                  name = "#{snapshots.last}/#{line.gsub(/\s/, "")}"
+                elsif current_level == snap_level
+                  path = snapshots.last.split("/")
+                  path.pop
+                  path << line.gsub(/\s/, "")
+                  name = path.join("/")
+                else
+                  path = snapshots.last.split("/")
+                  diff = snap_level - current_level
+                  (0..diff).to_a.each { |i| path.pop }
+                  path << line.gsub(/\s/, "")
+                  name = path.join("/")
+                end
+                snap_level = current_level
                 snapshots << name
               else
                 snapshots << line
