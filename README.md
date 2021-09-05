@@ -31,14 +31,26 @@ gem build vagrant-vmware-desktop.gemspec
 ### Utility Service
 
 This part fo the plugin lives in the `go_src` directory and is required to be
-running when using the vagrant-vmware-desktop plugin. To build and start it:
+running when using the vagrant-vmware-desktop plugin.
 
+#### To build and start it:
+#####  - *Linux/MacOS*
 ```shell
 cd go_src/vagrant-vmware-utility
 go build
 ./vagrant-vmware-utility certificate generate
 sudo ./vagrant-vmware-utility api
 ```
+
+#####  - *Windows*
+```powershell
+cd go_src\vagrant-vmware-utility\
+go build
+.\vagrant-vmware-utility.exe certificate generate
+.\vagrant-vmware-utility.exe api
+```
+
+Note: You can use [Chocolatey](https://github.com/chocolatey/choco) to install GoLang with ```choco.exe install golang```
 
 #### Certificates
 
