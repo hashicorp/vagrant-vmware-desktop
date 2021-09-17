@@ -19,7 +19,7 @@ import (
 )
 
 const PORTFWD_PREFIX = "vagrant: "
-const VMWARE_VERSION_PATTERN = `(?i)VMware\s+(?P<product>[A-Za-z0-9-]+)\s+(?P<version>[\d.]+)\s*(?P<build>\S+)?\s*(?P<type>[A-Za-z0-9-]+)?`
+const VMWARE_VERSION_PATTERN = `(?i)VMware\s+(?P<product>[A-Za-z0-9-]+)\s+(?P<version>[\d.]+|e.x.p)\s*(?P<build>\S+)?\s*(?P<type>[A-Za-z0-9-]+)?`
 
 type BaseDriver struct {
 	Natfile          func(string) (*utility.VMWareNatFile, error)
@@ -85,6 +85,14 @@ func NewBaseDriver(vmxPath *string, licenseOverride string, logger hclog.Logger)
 		logger.Error("failed to generate VMware installation information", "error", err)
 		return nil, err
 	}
+
+	// DHCP Lease Path can vary based on version for some platforms
+	err = drv.vmwarePaths.UpdateVmwareDhcpLeasePath(i.Version)
+	if err != nil {
+		logger.Error("dhcp path loading failure", "error", err)
+		return nil, err
+	}
+	logger.Debug("dhcp lease file", "filepath", drv.vmwarePaths.DhcpLease)
 
 	logger.Debug("initial vmware information loaded", "license", i.License)
 	if licenseOverride != "" {
