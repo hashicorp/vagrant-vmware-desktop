@@ -158,6 +158,17 @@ func CreateDriver(vmxPath *string, b *BaseDriver, logger hclog.Logger) (Driver, 
 			logger.Error("failed to get VMware information", "error", err)
 			return d, err
 		}
+
+		// Assume advanced driver for experimental builds
+		if info.Version == "e.x.p" {
+			logger.Debug("creating new advanced driver")
+			d, err = NewAdvancedDriver(vmxPath, b, logger)
+			if err != nil {
+				return d, err
+			}
+			return d, nil
+		}
+
 		verParts := strings.Split(info.Version, ".")
 		if len(verParts) < 1 {
 			logger.Warn("failed to determine major version, using simple driver",

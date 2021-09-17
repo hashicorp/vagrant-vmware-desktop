@@ -37,3 +37,7 @@ func (v *VmwarePaths) Load() (err error) {
 	v.Vmrest = "/bin/false"
 	return
 }
+
+func (v *VmwarePaths) UpdateVmwareDhcpLeasePath(version string) error {
+	return nil
+}

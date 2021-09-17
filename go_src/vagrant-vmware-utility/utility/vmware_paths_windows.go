@@ -66,3 +66,7 @@ func (v *VmwarePaths) Load() error {
 
 	return nil
 }
+
+func (v *VmwarePaths) UpdateVmwareDhcpLeasePath(version string) error {
+	return nil
+}
