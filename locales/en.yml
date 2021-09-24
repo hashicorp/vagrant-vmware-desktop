@@ -383,6 +383,20 @@ en:
           The "package" command is not supported with VMware. We recommend
           taking a look at Packer (www.packer.io) as an option for creating
           VMware images.
+        port_forward_invalid_protocol: |-
+          An invalid protocol type has been provided for a port forward
+          configuration. Vagrant supports port forwarding protocols values:
+
+            * udp
+            * tcp
+
+          Please update your port forward configuration and run the command
+          again. Below is the invalid port forward entry:
+
+            Guest IP:   %{guest_ip}
+            Guest Port: %{guest_port}
+            Host Port:  %{host_port}
+            Protocol:   %{protocol}
         routing_table_command_not_found: |-
           The external program used to read TCP/IP routing tables in order
           to protect you against creating network collisions could not be
@@ -627,8 +641,7 @@ en:
             Device:  %{device}
             MAC:     %{mac}
             Reason:  %{message}
-      disks: 
+      disks:
         cap:
           disks:
             floppy_not_supported: "Floppy disk configuration not yet supported. Skipping disk '%{name}'..."
-

@@ -206,6 +206,10 @@ module HashiCorp
         error_key(:package_not_supported)
       end
 
+      class PortForwardInvalidProtocol < Base
+        error_key(:port_forward_invalid_protocol)
+      end
+
       class RoutingTableError < Base; end
 
       class RoutingTableCommandNotFound < RoutingTableError
