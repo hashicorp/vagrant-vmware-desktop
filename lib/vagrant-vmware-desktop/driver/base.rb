@@ -398,7 +398,11 @@ module HashiCorp
         # This deletes the VM.
         def delete
           @logger.info("Deleting VM: #{@vm_dir}")
-          @vm_dir.rmtree
+          begin
+            @vm_dir.rmtree
+          rescue Errno::ENOTEMPTY
+            FileUtils.rm_rf(@vm_dir.to_s)
+          end
         end
 
         # This discards the suspended state of the machine.
