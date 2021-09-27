@@ -54,7 +54,7 @@ module HashiCorp
         machine.ui.info I18n.t("hashicorp.vagrant_vmware_desktop.sharing_folders")
         machine.provider.driver.enable_shared_folders
         shared_folders.each do |id, data|
-          id        = id.gsub('/', machine.provider_config.shared_folder_special_char)
+          id        = id.gsub(%r{[:\\/]}, machine.provider_config.shared_folder_special_char)
           path      = data[:hostpath]
           guestpath = data[:guestpath]
 
