@@ -1,7 +1,8 @@
 ## 1.0.21 (UNRELEASED)
 
-- macOS networking updates and experimental builds support [GH-16](https://github.com/hashicorp/vagrant-vmware-desktop/pull/16)
-- Add UDP support to internal port forwarding service [GH-17](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
+- macOS networking updates and experimental builds support [[GH-16]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/16)
+- Add UDP support to internal port forwarding service [[GH-17]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
+- Update max open files soft limit at startup on macOS [[GH-19]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/19)
 
 ## 1.0.20
 

@@ -1,7 +1,7 @@
 ## 3.0.2 (UNRELEASED)
 
-- Add protocol type validation on port forwards [GH-17](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
-- Fix internal synced folder name for Windows paths [GH-18](https://github.com/hashicorp/vagrant-vmware-desktop/pull/18)
+- Add protocol type validation on port forwards [[GH-17]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
+- Fix internal synced folder name for Windows paths [[GH-18]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/18)
 
 ## 3.0.1
 
