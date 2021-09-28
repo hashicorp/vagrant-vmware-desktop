@@ -13,7 +13,7 @@ and `vmware_player`.
 ## Developing
 
 There are two separate parts which work together to provide the vagrant-vmware-desktop
-functionality. The first is the vagrant-vmware-desktop RubyGem. This does the bulk of 
+functionality. The first is the vagrant-vmware-desktop RubyGem. This does the bulk of
 the work for the plugin. The second part is a vagrant-vmware-utility service that the
 vagrant-vmware-desktop plugin interacts with. The purpose of this part of the plugin
 is to do operations which require privleged access on the host. This includes network
@@ -21,7 +21,7 @@ operations and verification of fusion/workstation.
 
 ### RubyGem - Desktop plugin
 
-Using bundler allows for local development. If you need to test the RubyGem plugin 
+Using bundler allows for local development. If you need to test the RubyGem plugin
 on another system you can build a gem by building directly:
 
 ```shell
@@ -33,11 +33,31 @@ gem build vagrant-vmware-desktop.gemspec
 This part fo the plugin lives in the `go_src` directory and is required to be
 running when using the vagrant-vmware-desktop plugin. To build and start it:
 
+
+#### Linux / macOS
+
 ```shell
 cd go_src/vagrant-vmware-utility
 go build
 ./vagrant-vmware-utility certificate generate
 sudo ./vagrant-vmware-utility api
+```
+
+#### Windows
+
+In a user console, run:
+
+```shell
+cd go_src\vagrant-vmware-utility
+go build
+.\vagrant-vmware-utility certificate generate
+```
+
+In an administrator console, run:
+
+```shell
+cd go_src\vagrant-vmware-utility
+.\vagrant-vmware-utility api
 ```
 
 #### Certificates
