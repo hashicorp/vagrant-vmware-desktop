@@ -53,6 +53,15 @@ const LAUNCHD_JOB = `<?xml version="1.0" encoding="UTF-8"?>
         <string>%s</string>
     <key>AbandonProcessGroup</key>
         <true/>
+	  <!--
+	    default is 256 which can be low if we are handling port
+	    forwarding so increase to a reasonably larger amount
+	  -->
+	  <key>SoftResourceLimits</key>
+	  <dict>
+	      <key>NumberOfFiles</key>
+	      <integer>4096</integer>
+	  </dict>
 </dict>
 </plist>
 `
