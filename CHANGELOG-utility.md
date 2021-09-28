@@ -1,5 +1,8 @@
 ## 1.0.21 (UNRELEASED)
 
+- macOS networking updates and experimental builds support [GH-16](https://github.com/hashicorp/vagrant-vmware-desktop/pull/16)
+- Add UDP support to internal port forwarding service [GH-17](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
+
 ## 1.0.20
 
 - Fix debian packaging to prevent installation error on post install script
@@ -105,4 +108,3 @@
 ## 1.0.0
 
 - Initial utility release
-
