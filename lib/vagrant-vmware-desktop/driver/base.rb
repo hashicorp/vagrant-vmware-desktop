@@ -237,6 +237,13 @@ module HashiCorp
             h_port = fwd[:port]
             f_proto = fwd[:protocol].downcase.to_sym
             result[g_ip] ||= {:tcp => {}, :udp => {}}
+            if f_proto != :tcp && f_proto != :udp
+              raise Errors::PortForwardInvalidProtocol,
+                guest_ip: g_ip,
+                guest_port: g_port,
+                host_port: h_port,
+                protocol: f_proto
+            end
             result[g_ip][f_proto][g_port] = h_port
           end
           if ip
