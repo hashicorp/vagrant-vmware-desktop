@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - 'build-*'
+      - 'build-utility-*'
     tags:
       - 'utility-v*'
       - '!utility-v*\+*'
