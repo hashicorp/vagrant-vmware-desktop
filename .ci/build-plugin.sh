@@ -27,6 +27,7 @@ g=(vagrant*.gem)
 gem=$(printf "%s" "${g}")
 
 # Upload built gem to the asset store
+set -x
 upload_assets "${gem}"
-
+set +x
 slack -m "New development version of vagrant-vmware-desktop available: v${version}\n* $(asset_location)/${gem}"
