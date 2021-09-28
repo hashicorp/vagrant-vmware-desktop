@@ -1,8 +1,12 @@
+## 3.0.2 (UNRELEASED)
+
+- Add protocol type validation on port forwards [GH-17](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
+
 ## 3.0.1
 
-- Fix bug with outputting a snapshot tree 
+- Fix bug with outputting a snapshot tree
 
-## 3.0.0 
+## 3.0.0
 
 - Open source plugin, remove encoding
 
