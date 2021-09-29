@@ -291,7 +291,7 @@ if ($SignKeyExists -and "${SignKeyPassword}" -ne "") {
     Write-Host "!!> Applying signature..."
 
     & $SignTool sign `
-      /debug `
+      /d "Vagrant VMware Utility" `
       /t http://timestamp.digicert.com `
       /f "${SignKey}" `
       /p "${SignKeyPassword}" `
