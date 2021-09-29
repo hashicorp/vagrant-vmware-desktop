@@ -1,4 +1,4 @@
-## 1.0.21 (UNRELEASED)
+## 1.0.21 (September 29, 2021)
 
 - macOS networking updates and experimental builds support [[GH-16]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/16)
 - Add UDP support to internal port forwarding service [[GH-17]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/17)
