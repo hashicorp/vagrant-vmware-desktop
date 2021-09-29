@@ -1,3 +1,5 @@
+## 1.0.22 (UNRELEASED)
+
 ## 1.0.21 (September 29, 2021)
 
 - macOS networking updates and experimental builds support [[GH-16]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/16)
