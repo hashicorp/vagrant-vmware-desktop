@@ -19,6 +19,10 @@ else
     remote_repository="hashicorp/vagrant-vmware-desktop"
 fi
 
+wrap git config pull.rebase false \
+     "Failed to configure git pull strategy"
+
+
 echo "Adding remote mirror repository '${remote_repository}'..."
 wrap git remote add mirror "https://${HASHIBOT_USERNAME}:${HASHIBOT_TOKEN}@github.com/${remote_repository}" \
      "Failed to add mirror '${remote_repository}' for sync"
