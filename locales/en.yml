@@ -163,7 +163,9 @@ en:
           to occur across several attempts, it may indicate a problem with the
           base box being used. If this error occurs across multiple boxes, it
           may indicate a VMware configuration problem. Persistent problems can
-          be reported to support@hashicorp.com.
+          be reported to:
+
+            https://github.com/hashicorp/vagrant-vmware-desktop/issues
         clone_folder_exists: |-
           The clone folder that Vagrant is attempting to use to import
           the VMware box has existed repeatedly 10 times while generating
@@ -172,7 +174,9 @@ en:
           to your system.
         clone_folder_not_folder: |-
           The clone directory given is not a directory. This is an internal
-          error and should be reported as a bug to support@hashicorp.com.
+          error and should be reported as a bug to:
+
+            https://github.com/hashicorp/vagrant-vmware-desktop/issues
 
           Path: %{path}
         disk_not_created: Disk %{name} not created!
@@ -536,7 +540,9 @@ en:
           service key file. This error can occur if the Vagrant VMware Utility
           has not yet been installed, or if it was installed incorrectly. If
           this error persists after running the Vagrant VMware Utility installer
-          again, please contact support at: support@hashicorp.com
+          again, please open a new issue at:
+
+            https://github.com/hashicorp/vagrant-vmware-desktop/issues
 
           Information about the Vagrant VMware Utility, including installation
           instruction, can be found here:
@@ -550,7 +556,9 @@ en:
           service key file. This error can occur if the Vagrant VMware Utility
           has not yet been installed, or if it was installed incorrectly. If
           this error persists after running the Vagrant VMware Utility installer
-          again, please contact support at: support@hashicorp.com
+          again, please open a new issue at:
+
+            https://github.com/hashicorp/vagrant-vmware-desktop/issues
 
           Information about the Vagrant VMware Utility, including installation
           instruction, can be found here:
@@ -583,11 +591,15 @@ en:
         driver_api_request_unexpected_error: |-
           Vagrant encountered an unexpected communications error with the
           Vagrant VMware Utility driver. Please try to run the command
-          again. If this error persists, please contact support@hashicorp.com
+          again. If this error persists, please open a new issue at:
+
+            https://github.com/hashicorp/vagrant-vmware-desktop/issues
         driver_api_invalid_response: |-
           Vagrant failed to properly process a result from the Vagrant VMware
           Utility driver. Please try to run the command again. If this error
-          persists, please contact support@hashicorp.com
+          persists, please open a new issue at:
+
+            https://github.com/hashicorp/vagrant-vmware-desktop/issues
         driver_api_port_forward_list_error: |-
           Failed to receive list of currently used VMware port forwards. The
           reported cause for the error:
