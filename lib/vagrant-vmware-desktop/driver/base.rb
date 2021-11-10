@@ -1241,7 +1241,7 @@ module HashiCorp
            
           # Execute the "vmrun" with host_type parameters
           begin
-            vmexec(@vmrun_path, *command)
+            vmexec(@vmrun_path, "-T", host_type, *command)
           rescue Errors::VMExecError => e
             raise Errors::VMRunError,
               :command => e.extra_data[:command],
