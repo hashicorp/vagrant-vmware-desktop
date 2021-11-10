@@ -1230,6 +1230,16 @@ module HashiCorp
 
         # This executes the "vmrun" command with the given arguments.
         def vmrun(*command)
+          # Get the VMware product family
+          host_type = "player" # default, plugin is not support "vmplayer".
+          case PRODUCT_NAME.to_s
+          when "workstation" then
+            host_type = "ws"
+          when "fusion"
+            host_type = "fusion"
+          end
+           
+          # Execute the "vmrun" with host_type parameters
           begin
             vmexec(@vmrun_path, *command)
           rescue Errors::VMExecError => e
