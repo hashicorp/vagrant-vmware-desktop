@@ -318,8 +318,20 @@ module HashiCorp
             destination_vmx = destination.join(source_vmx.basename)
 
             begin
-              # Do a linked clone!
-              vmrun("clone", host_path(source_vmx), host_path(destination_vmx), "linked")
+              # Create a named snapshot first. This prevents the `vmrun clone` command from generating
+              # a duplicate clone name of "Clone" multiple times. [hashicorp/vagrant-vmware-desktop#38]
+              # Determine how many snapshots there are, and append the number.
+              snapshots = []
+              vmrun("listSnapshots", host_path(source_vmx)).stdout.split("\n").each do |line|
+                if !line.include?("Total snapshot")
+                  snapshots << line
+                end
+              end
+              snapshotname = "clone-#{snapshots.length}"
+              # Create a named snapshot, e.g. "clone-0, clone-1, ..., clone-n"
+              vmrun("snapshot", host_path(source_vmx), snapshotname)
+              # Make a linked clone using the named snapshot
+              vmrun("clone", host_path(source_vmx), host_path(destination_vmx), "linked", "-snapshot=#{snapshotname}")
               # Common cleanup
             rescue Errors::VMRunError => e
               # Check if this version of VMware doesn't support linked clones
