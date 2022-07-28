@@ -4,6 +4,9 @@ echo "🤖 Loading VagrantCI 🤖"
 
 ldir="$(realpath ./.ci-utility-files)"
 
+# Disable IMDS lookup
+export AWS_EC2_METADATA_DISABLED=true
+
 # If utility files have not yet been pulled, fetch them
 if [ ! -e "${ldir}/.complete" ]; then
 
