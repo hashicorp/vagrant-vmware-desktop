@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -e
+
+function fail() {
+    echo "ERROR: ${1}"
+    exit 1
+}
 
 extension="rpm"
 
@@ -12,9 +16,9 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 echo "==> Building ${extension} package... "
 
-fpm -p ${asset} \
+fpm -p "${asset}" \
     -n vagrant-vmware-utility \
-    -v $version \
+    -v "${version}" \
     -t rpm \
     -s dir \
     -C "${stage}" \
@@ -31,7 +35,7 @@ fpm -p ${asset} \
     --rpm-user root \
     --rpm-group root \
     --after-install "${root}/package/common/after_install.sh" \
-    .
+    . || fail "Failed to create rpm package"
 
 echo "==> Cleaning up packaging artifacts..."
 rm -rf "${stage}"
