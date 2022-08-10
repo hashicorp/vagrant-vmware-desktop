@@ -54,7 +54,7 @@ $version = (cmd /c "${stage}\bin\vagrant-vmware-utility.exe --version" 2`>`&1)
 
 Write-Host "==> Detecting utility version... ${version}!"
 
-$asset = "${base}\vagrant-vmware-utility_${version}_x86_64.msi"
+$asset = "${base}\vagrant-vmware-utility_${version}_windows_amd64.msi"
 
 $InstallerTmpDir = [System.IO.Path]::GetTempPath()
 $InstallerTmpDir = [System.IO.Path]::Combine(

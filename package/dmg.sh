@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -e
+
+function fail() {
+    echo "ERROR: ${1}"
+    exit 1
+}
 
 extension="dmg"
 
@@ -23,9 +27,12 @@ echo "==> Installing package resources..."
 pkg_contents="${base}/pkg-contents"
 pkg_resources="${pkg_contents}/resources"
 mkdir -p "${pkg_resources}"
-cp "${package}/dmg/background.png" "${pkg_resources}/background.png"
-cp "${package}/dmg/welcome.html" "${pkg_resources}/welcome.html"
-cp "${package}/dmg/license.html" "${pkg_resources}/license.html"
+cp "${package}/dmg/background.png" "${pkg_resources}/background.png" ||
+    fail "Could not add installer background image"
+cp "${package}/dmg/welcome.html" "${pkg_resources}/welcome.html" ||
+    fail "Could not add installer welcome page"
+cp "${package}/dmg/license.html" "${pkg_resources}/license.html" ||
+    fail "Could not add installer license page"
 
 echo "==> Creating postinstall script..."
 mkdir -p "${pkg_contents}/scripts"
@@ -39,15 +46,17 @@ cat <<EOF >"${pkg_contents}/scripts/postinstall"
 chflags hidden /opt
 exit 0
 EOF
-chmod 0755 "${pkg_contents}/scripts/postinstall"
+chmod 0755 "${pkg_contents}/scripts/postinstall" ||
+    fail "Could not modify permission of post install script"
 
-set +e
 # Install and enable package signing if available
 if [[ -f "${PKG_SIGN_CERT_PATH}" && -f "${PKG_SIGN_KEY_PATH}" ]]
 then
     echo "==> Installing package signing key..."
-    security import "${PKG_SIGN_CERT_PATH}" -k "${SIGN_KEYCHAIN}" -T /usr/bin/codesign -T /usr/bin/pkgbuild -T /usr/bin/productbuild
-    security import "${PKG_SIGN_KEY_PATH}" -k "${SIGN_KEYCHAIN}" -T /usr/bin/codesign -T /usr/bin/pkgbuild -T /usr/bin/productbuild
+    security import "${PKG_SIGN_CERT_PATH}" -k "${SIGN_KEYCHAIN}" -T /usr/bin/codesign -T /usr/bin/pkgbuild -T /usr/bin/productbuild ||
+        fail "Failed to import package signing certificate"
+    security import "${PKG_SIGN_KEY_PATH}" -k "${SIGN_KEYCHAIN}" -T /usr/bin/codesign -T /usr/bin/pkgbuild -T /usr/bin/productbuild ||
+        fail "Failed to import package signing key"
     SIGN_PKG="1"
 fi
 
@@ -55,7 +64,8 @@ fi
 if [[ -f "${CODE_SIGN_CERT_PATH}" && "${CODE_SIGN_PASS}" != "" ]]
 then
     echo "==> Installing code signing key..."
-    security import "${CODE_SIGN_CERT_PATH}" -k "${SIGN_KEYCHAIN}" -P "${CODE_SIGN_PASS}" -T /usr/bin/codesign
+    security import "${CODE_SIGN_CERT_PATH}" -k "${SIGN_KEYCHAIN}" -P "${CODE_SIGN_PASS}" -T /usr/bin/codesign ||
+        fail "Failed to import code signing certificate"
     SIGN_CODE="1"
 fi
 set -e
@@ -63,8 +73,8 @@ set -e
 if [[ "${SIGN_CODE}" -eq "1" ]]
 then
     echo "==> Signing executables..."
-    find "${stage}" -type f -perm +0111 -exec ls -lh {} \;
-    find "${stage}" -type f -perm +0111 -exec codesign --options=runtime -s "${CODE_SIGN_IDENTITY}" {} \;
+    find "${stage}" -type f -perm +0111 -exec codesign --options=runtime -s "${CODE_SIGN_IDENTITY}" {} \; ||
+        fail "Failed to sign all executables"
 fi
 
 if [[ "${SIGN_PKG}" -eq "1" ]]
@@ -73,22 +83,24 @@ then
     pkgbuild \
         --root "${stage}/opt/vagrant-vmware-desktop" \
         --identifier com.vagrant.vagrant-vmware-utility \
-        --version ${version} \
+        --version "${version}" \
         --install-location "/opt/vagrant-vmware-desktop" \
         --scripts "${pkg_contents}/scripts" \
         --timestamp=none \
         --sign "${PKG_SIGN_IDENTITY}" \
-        "${pkg_contents}/core.pkg"
+        "${pkg_contents}/core.pkg" ||
+        fail "Failed to build core package"
 else
     echo "==> Building unsigned core.pkg..."
     pkgbuild \
         --root "${stage}/opt/vagrant-vmware-desktop" \
         --identifier com.vagrant.vagrant-vmware-utility \
-        --version ${version} \
+        --version "${version}" \
         --install-location "/opt/vagrant-vmware-desktop" \
         --scripts "${pkg_contents}/scripts" \
         --timestamp=none \
-        "${pkg_contents}/core.pkg"
+        "${pkg_contents}/core.pkg" ||
+        fail "Failed to build core package"
 fi
 
 cat <<EOF >"${pkg_contents}/vagrant-vmware-utility.dist"
@@ -138,7 +150,8 @@ then
         --package-path "${pkg_contents}" \
         --timestamp=none \
         --sign "${PKG_SIGN_IDENTITY}" \
-        "${pkg_contents}/dmg/VagrantVMwareUtility.pkg"
+        "${pkg_contents}/dmg/VagrantVMwareUtility.pkg" ||
+        fail "Failed to build final package"
 else
     echo "==> Building unsigned VagrantVMwareUtility.pkg..."
 
@@ -147,19 +160,27 @@ else
         --resources "${pkg_resources}" \
         --package-path "${pkg_contents}" \
         --timestamp=none \
-        "${pkg_contents}/dmg/VagrantVMwareUtility.pkg"
+        "${pkg_contents}/dmg/VagrantVMwareUtility.pkg" ||
+        fail "Failed to build final package"
 fi
 
 echo "==> Installing uninstall.tool..."
 
-cp "${package}/dmg/uninstall.tool" "${pkg_contents}/dmg/uninstall.tool"
-chmod +x "${pkg_contents}/dmg/uninstall.tool"
+cp "${package}/dmg/uninstall.tool" "${pkg_contents}/dmg/uninstall.tool" ||
+    fail "Could not add uninstall script"
+chmod +x "${pkg_contents}/dmg/uninstall.tool" ||
+    fail "Could not modify permissions on uninstall script"
 
 echo "==> Creating DMG..."
 
 tmp_output="/tmp/$(basename "${asset}")"
 
-dmgbuild -s "${package}/dmg/dmgbuild.py" -D srcfolder="${pkg_contents}/dmg" -D backgroundimg="${package}/dmg/background_installer.png" "Vagrant VMware Utility" "${tmp_output}"
+dmgbuild -s "${package}/dmg/dmgbuild.py" \
+    -D srcfolder="${pkg_contents}/dmg" \
+    -D backgroundimg="${package}/dmg/background_installer.png" \
+    "Vagrant VMware Utility" \
+    "${tmp_output}" ||
+    fail "Failed to build final DMG"
 
 if [[ "${SIGN_PKG}" -ne "1" ]]
 then
@@ -172,7 +193,8 @@ then
     echo
 else
     echo "==> Signing DMG..."
-    codesign -s "${PKG_SIGN_IDENTITY}" --timestamp "${tmp_output}"
+    codesign -s "${PKG_SIGN_IDENTITY}" --timestamp "${tmp_output}" ||
+        fail "Failed to sign final DMG"
 fi
 
 if [ "${SIGN_PKG}" = "1" ] && [ "${SIGN_CODE}" = "1" ] && [ "${NOTARIZE_USERNAME}" != "" ]; then
@@ -186,7 +208,7 @@ notarize {
   staple = true
 }
 EOF
-    gon ./config.hcl
+    gon ./config.hcl || fail "Failed to notarize final DMG"
 else
     echo
     echo "!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!"
@@ -197,7 +219,8 @@ else
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 fi
 
-cp -f "${tmp_output}" "${asset}"
+cp -f "${tmp_output}" "${asset}" ||
+    fail "Could not copy DMG to final destination"
 
 echo "==> Cleaning up package artifacts..."
 rm -rf "${pkg_contents}" "${pkg_resources}" "${stage}" "${tmp_output}"
