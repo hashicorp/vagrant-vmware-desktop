@@ -9,7 +9,7 @@ jobs:
   build-utilities:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
     name: Utility Builds
-    runs-on: self-hosted
+    runs-on: [self-hosted, vagrantci]
     steps:
       - name: Code Checkout
         uses: actions/checkout@v1
