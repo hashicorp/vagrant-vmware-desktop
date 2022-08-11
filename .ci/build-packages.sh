@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2164
 
-export GO_VERSION="1.15.8"
+export GO_VERSION="1.19"
 export SLACK_USERNAME="Vagrant VMware Utility"
 export SLACK_ICON="https://avatars.slack-edge.com/2017-10-17/257000837696_070f98107cdacc0486f6_36.png"
 export SLACK_TITLE="📦 System Packaging"
 export SLACK_CHANNEL="#team-vagrant"
 export PACKET_EXEC_DEVICE_NAME="${PACKET_EXEC_DEVICE_NAME:-ci-utility-installers}"
-export PACKET_EXEC_DEVICE_SIZE="${PACKET_EXEC_DEVICE_SIZE:-baremetal_0,baremetal_1,baremetal_1e}"
-export PACKET_EXEC_PREFER_FACILITIES="${PACKET_EXEC_PREFER_FACILITIES:-iad1,iad2,ewr1,dfw1,dfw2,sea1,sjc1,lax1}"
+export PACKET_EXEC_DEVICE_SIZE="${PACKET_EXEC_DEVICE_SIZE:-c3.small.x86,m3.small.x86}"
+export PACKET_EXEC_PREFER_FACILITIES="${PACKET_EXEC_PREFER_FACILITIES:-da6,sv15,sv16,da11,ch3,dc10,dc13,ny5,ny7}"
 export PACKET_EXEC_OPERATING_SYSTEM="${PACKET_EXEC_OPERATING_SYSTEM:-ubuntu_18_04}"
 export PACKET_EXEC_PRE_BUILTINS="${PACKET_EXEC_PRE_BUILTINS:-InstallVmware,InstallVagrant,InstallVagrantVmware}"
-export PACKET_EXEC_ATTACH_VOLUME="1"
 export PACKET_EXEC_QUIET="1"
 export PACKET_EXEC_PERSIST="1"
-export PKT_VAGRANT_HOME="/mnt/data"
 export PKT_VAGRANT_CLOUD_TOKEN="${VAGRANT_CLOUD_TOKEN}"
 export PKT_DEBIAN_FRONTEND="noninteractive"
 
@@ -26,10 +25,9 @@ root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
 
 # Since we have a custom tagging strategy in this repository,
 # clean up the tag and re-check if this is a release event.
-if [ ! -z "${tag}" ]; then
+if [ -n "${tag}" ]; then
     release_version="${tag#utility-v}"
-    valid_release_version "${release_version}"
-    if [ $? -eq 0 ]; then
+    if valid_release_version "${release_version}"; then
         release=1
     fi
 fi
@@ -46,7 +44,7 @@ function cleanup {
 }
 
 # Ensure we are in the root directory of the repository
-pushd "${root}" > "${output}"
+pushd "${root}"
 
 # Notify that the build is getting started
 if [ "${release}" = "1" ]; then
@@ -56,9 +54,8 @@ else
 fi
 
 echo "++> Creating packet device if needed..."
-packet-exec info
 
-if [ $? -ne 0 ]; then
+if ! packet-exec info; then
     wrap_stream packet-exec create \
                 "Failed to create packet device"
 fi
@@ -77,8 +74,7 @@ pkt_wrap_stream apt-get install -yq osslsigncode docker.io \
 unset PACKET_EXEC_PRE_BUILTINS
 
 # Install golang if not already installed
-packet-exec run -quiet -- test -e /usr/local/bin/go
-if [ $? -ne 0 ]; then
+if ! packet-exec run -quiet -- test -e /usr/local/bin/go; then
     pkt_wrap_stream curl -o /tmp/go.tgz -Ls \
                     "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz" \
                     "Failed to setup packet device (golang download)"
@@ -107,11 +103,9 @@ unset PACKET_EXEC_PRE_BUILTINS
 wrap chmod 0755 pkg/binaries/* \
      "Failed to update permissions on utility binaries"
 
-binary=(pkg/binaries/*linux_amd64)
-binary="$(printf "%s" "${binary}")"
-utility_version="$("${binary}" -v 2>&1)"
-
-if [ $? -ne 0 ]; then
+binary_list=(pkg/binaries/*linux_amd64)
+binary="$(printf "%s" "${binary_list[0]}")"
+if ! utility_version="$("${binary}" -v 2>&1)"; then
     fail "Unable to read utility version from binary: ${utility_version}"
 fi
 
@@ -163,9 +157,11 @@ pkt_wrap_stream docker kill "${container_name}" \
 # docker exec ${name} sudo -u dummy /vagrant/package/xz.sh
 
 echo "++> Creating linux zip asset..."
-tmpdir=$(mktemp --directory)
-cp "${binary}" "${tmpdir}/vagrant-vmware-utility"
-zip -j "pkg/vagrant-vmware-utility_${utility_version}_linux_amd64.zip" "${tmpdir}/"*
+tmpdir="$(mktemp --directory)"
+cp "${binary}" "${tmpdir}/vagrant-vmware-utility" ||
+    fail "Failed to copy vagrant-vmware-utility binary"
+zip -j "pkg/vagrant-vmware-utility_${utility_version}_linux_amd64.zip" "${tmpdir}/"* ||
+    fail "Failed to compress the vagrant-vmware-utility asset"
 rm -rf "${tmpdir}"
 
 echo "++> Upload zip package to remote..."
@@ -194,28 +190,25 @@ wrap_stream packet-exec run -download "./pkg/*.*:./pkg" -- ./package/sign.sh "${
 unset PACKET_EXEC_PRE_BUILTINS
 
 echo "++> Storing all assets..."
-pushd ./pkg > "${output}"
+pushd ./pkg
 
 upload_assets .
 
-
-popd > "${output}"
+popd
 
 echo "++> Generating release..."
 
 export GITHUB_TOKEN="${HASHIBOT_TOKEN}"
 
-if [ ! -z "${release}" ]; then
+if [ -n "${release}" ]; then
     release "${tag}" "./pkg"
     hashicorp_release "./pkg" "vagrant-vmware-utility"
     slack -m "New Vagrant release has been published! - *${utility_version}*\n\nAssets: https://releases.hashicorp.com/vagrant-vmware-utility/${utility_version}"
 else
-    prerelease_version=$(prerelease "utility-v${utility_version}" "./pkg")
+    prerelease_version="$(prerelease "utility-v${utility_version}" "./pkg")"
     slack -m "New Vagrant VMware Utility development installers available:\n> https://github.com/${repository}/releases/${prerelease_version}"
 fi
 
 echo "++> Build complete!"
 
-popd > "${output}"
-
-exit $result
+popd

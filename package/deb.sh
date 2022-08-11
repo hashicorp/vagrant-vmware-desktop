@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -e
+
+function fail() {
+    echo "ERROR: ${1}"
+    exit 1
+}
 
 extension="deb"
 
@@ -12,9 +16,9 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 echo "==> Building ${extension} package..."
 
-fpm -p ${asset} \
+fpm -p "${asset}" \
     -n vagrant-vmware-utility \
-    -v $version \
+    -v "${version}" \
     -t deb \
     -s dir \
     -C "${stage}" \
@@ -30,7 +34,7 @@ fpm -p ${asset} \
     --deb-systemd-enable \
     --deb-systemd-auto-start \
     --after-install "${root}/package/common/after_install.sh" \
-    .
+    . || fail "Failed to build deb package"
 
 echo "==> Cleaning up packaging artifacts..."
 rm -rf "${stage}"
