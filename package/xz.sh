@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -e
+
+function fail() {
+    echo "ERROR: ${1}"
+    exit 1
+}
 
 extension="tar.xz"
 
@@ -12,20 +16,26 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 echo "==> Installing PKGBUILD files..."
 
-cp "${package}/xz/PKGBUILD" "${stage}/PKGBUILD"
-cp "${package}/xz/vagrant-vmware-utility.install" "${stage}/vagrant-vmware-utility.install"
-mv "${stage}/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" "${stage}/vagrant-vmware-utility"
+cp "${package}/xz/PKGBUILD" "${stage}/PKGBUILD" ||
+    fail "Could not add PKGBUILD file"
+cp "${package}/xz/vagrant-vmware-utility.install" "${stage}/vagrant-vmware-utility.install" ||
+    fail "Could not add install script"
+mv "${stage}/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" "${stage}/vagrant-vmware-utility" ||
+    fail "Could not add utility binary"
 
 echo "==> Building ${extension} package..."
 
-pushd "${stage}" > /dev/null
+pushd "${stage}" > /dev/null 2>&1 ||
+    fail "Could not enter staging directory"
 
 export version
 
-makepkg --syncdeps --force --noconfirm
-mv *.xz "${asset}"
+makepkg --syncdeps --force --noconfirm ||
+    fail "Failed to make arch pacakge"
 
-popd > /dev/null
+mv ./*.xz "${asset}"
+
+popd > /dev/null 2>&1 || fail "Could not return to original directory"
 
 echo "==> Cleaning up packaging artifacts..."
 rm -rf "${stage}"

@@ -1,16 +1,21 @@
 #!/bin/bash
 
+function fail() {
+    echo "ERROR: ${1}"
+    exit 1
+}
+
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
 DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
 # Change into that dir because we expect that
-cd "${DIR}"
+pushd "${DIR}" > /dev/null 2>&1 || fail "Could not enter project directory"
 
 # Get the version from the command line
-VERSION=$1
-if [ -z $VERSION ]; then
+VERSION="${1}"
+if [ -z "${VERSION}" ]; then
     echo "Please specify a version."
     exit 1
 fi
@@ -36,24 +41,3 @@ if [ -d "./pkg/init" ]; then
     echo "Removing init artifact directory ./pkg/init"
     rm -rf ./pkg/init
 fi
-
-# Make the checksums
-pushd ./pkg
-
-shasum -a256 * > ./vagrant-vmware-utility_${VERSION}_SHA256SUMS
-
-if [ $? -ne 0 ]; then
-    echo "Failed to generate checksum values"
-    exit 1
-fi
-
-if [ -z "${NOSIGN}" ]; then
-    echo "==> Signing..."
-    gpg --default-key 348FFC4C --detach-sig ./vagrant-vmware-utility_${VERSION}_SHA256SUMS
-
-    if [ $? -ne 0 ]; then
-        echo "Failed to create checksums signature file"
-        exit 1
-    fi
-fi
-popd
