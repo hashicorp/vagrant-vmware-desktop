@@ -22,6 +22,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/posener/complete v1.2.3 // indirect
+	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844
 	github.com/zclconf/go-cty v1.8.3 // indirect
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/sys v0.0.0-20210601080250-7ecdf8ef093b
