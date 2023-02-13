@@ -1,0 +1,297 @@
+#!/usr/bin/env bash
+
+# Setup some constants
+NOTARIZE="🍎"
+PACKAGE="📦"
+BANG="❗️"
+LOGS="🌲"
+WAITING="🕓"
+DEBUG="🐞"
+VALIDATE="🔎"
+RED="$(tput setaf 1)"
+YELLOW="$(tput setaf 3)"
+GREEN="$(tput setaf 2)"
+BOLD="$(tput bold)"
+CLEAR="$(tput sgr0)"
+
+NOTARIZATION_WAIT_INTERVAL=30
+
+# Setup our defaults
+declare -A params
+params=(["username"]="${AC_USERNAME}" ["password"]="${AC_PASSWORD}" ["debug"]="")
+r_output="/dev/null"
+
+function print_help() {
+    bin=$(basename "${0}")
+    echo "Usage: ${bin} COMMAND [OPTS] [ARGS]"
+    echo
+    echo "Description:"
+    echo "  This tool provides a simple interface to the Apple notarization"
+    echo "  process. It includes various subcommands which can be used for:"
+    echo "  notarization, verification, and log inspection."
+    echo
+    echo "Commands:"
+    echo -e "\tinfo REQUEST_UUID [ATTR]\tFetch notarization information"
+    echo -e "\tlog REQUEST_UUID\t\tFetch notarization log"
+    echo -e "\tnotarize BUNDLE_ID PATH\t\tSubmit PATH for notarization"
+    echo -e "\t  -s\tWait and staple"
+    echo -e "\tstaple PATH\t\t\tStaple PATH (notarization must be complete)"
+    echo -e "\tvalidate UUID\t\t\tValidate notarization was successful"
+    echo -e "\twait UUID\t\t\tWait for notarization request to complete"
+    echo
+    echo "Global Options:"
+    echo -e "\t-d\t\tEnable debug output"
+    echo -e "\t-p PASSWORD\tApple ID password (default: AC_PASSWORD)"
+    echo -e "\t-u USERNAME\tApple ID username (default: AC_USERNAME)"
+}
+
+function debug() {
+    if [ -n "${params[debug]}" ]; then
+        print "${BOLD}${YELLOW}${DEBUG}${CLEAR} <${1}> ${2}"
+    fi
+}
+
+function print() {
+    echo -e "${1}" > /dev/stderr
+}
+
+function error() {
+    print "${BOLD}${RED}${BANG}${CLEAR}${RED}${1}"
+    exit 1
+}
+
+function write() {
+    echo -n -e "${1}" > /dev/stderr
+}
+
+function puts() {
+    echo -e "${1}"
+}
+
+function display_error() {
+    msg="${1}"
+    if [[ "${msg}" = *"*** Error:"* ]]; then
+        error "${msg#*Error: }"
+    else
+        error "${msg##*$'\n'}"
+        error "Unknown error encountered"
+    fi
+}
+
+function validate_path() {
+    path="${1}"
+    if [ -z "${path}" ]; then
+        error "PATH was not provided for notarization"
+    fi
+    if [ ! -f "${path}" ]; then
+        error "PATH value does not reference a valid path (${path})"
+    fi
+}
+
+function failure() {
+    print "${BOLD}${RED}failed${CLEAR}"
+}
+
+function success() {
+    print "${BOLD}${GREEN}success${CLEAR}"
+}
+
+function notarize() {
+    bid="${1}"
+    path="${2}"
+    if [ -z "${bid}" ]; then
+        error "BUNDLE_ID is missing for notarization"
+    fi
+    validate_path "${path}"
+
+    write "${BOLD}${NOTARIZE}${CLEAR} Sending notarization request for ${path}... "
+    output=$(xcrun altool --notarize-app --username "${params[username]}" --password "${params[password]}" --primary-bundle-id "${bid}" --file "${path}" 2> "${r_output}")
+    result=$?
+    debug "notarization" "${output}"
+    if [ $result -ne 0 ]; then
+        failure
+        display_error "${output}"
+    fi
+    success
+    uuid="${output#*RequestUUID = }"
+    puts "${uuid}"
+}
+
+function info() {
+    uuid="${1}"
+    quiet="${2}"
+
+    if [ -z "${uuid}" ]; then
+        error "REQUEST_UUID is missing for lookup"
+    fi
+
+    if [ -z "${quiet}" ]; then
+        write "${BOLD}${NOTARIZE}${CLEAR} Looking up notarization information on ${uuid}... "
+    fi
+    output=$(xcrun altool --notarization-info "${uuid}" --username "${params[username]}" --password "${params[password]}" 2> "${r_output}")
+    result=$?
+    debug "info" "${output}"
+    if [ $result -ne 0 ]; then
+        failure
+        display_error "${output}"
+    fi
+    if [ -z "${quiet}" ]; then
+        success
+    fi
+    echo "${output}"
+}
+
+function staple() {
+    path="${1}"
+    validate_path "${path}"
+
+    write "${BOLD}${PACKAGE}${CLEAR} Stapling notarization to ${path}... "
+    output=$(xcrun stapler staple "${path}" 2> "${r_output}")
+    result=$?
+    debug "staple" "${output}"
+    if [ $result -ne 0 ]; then
+        failure
+        display_error "${output}"
+    fi
+    success
+}
+
+function get_info() {
+    key="${1}"
+    output="${2}"
+    debug "get_info" "key: ${key}"
+    debug "get_info" "output: ${output}"
+    # shellcheck disable=SC2295
+    part="${output#*${key}: }"
+    val="${part%%$'\n'*}"
+    debug "get_info" "value: ${val}"
+    puts "${val}"
+}
+
+function show_log() {
+    output="${1}"
+    url=$(get_info "LogFileURL" "${output}")
+    if [ -n "${url}" ]; then
+        print "${BOLD}${LOGS}${CLEAR} Fetching notarization log... "
+        if ! curl -f "${url}"; then
+            error "Failed to retrieve notarization log"
+        fi
+        return 0
+    fi
+    return 1
+}
+
+function wait_for_notarization() {
+    uuid="${1}"
+    if [ -z "${uuid}" ]; then
+        error "UUID is required"
+    fi
+
+    write "${BOLD}${WAITING}${CLEAR} Waiting for notarization to complete ${uuid}... "
+    while [ -z "${finished}" ]; do
+        output="$(info "${uuid}" quiet)"
+        status="$(get_info "Status" "${output}")"
+        debug "wait_for_notarization" "current status: ${status}"
+        if [ -n "${status}" ] && [ "${status}" != "in progress" ]; then
+            finished=1
+        else
+            debug "wait_for_notarization" "sleeping for ${NOTARIZATION_WAIT_INTERVAL}"
+            sleep "${NOTARIZATION_WAIT_INTERVAL}"
+        fi
+        success
+    done
+}
+
+function validate() {
+    uuid="${1}"
+    if [ -z "${uuid}" ]; then
+        error "UUID is required"
+    fi
+    write "${BOLD}${VALIDATE}${CLEAR} Validating notarization of ${uuid}... "
+    output="$(info "${uuid}" quiet)"
+    status="$(get_info "Status" "${output}")"
+    if [ "${status}" = "success" ]; then
+        success
+    else
+        failure
+        exit 1
+    fi
+}
+
+while getopts "u:p:sdh" opt; do
+    case "${opt}" in
+        u)
+            params[username]="${OPTARG}"
+            ;;
+        p)
+            params[password]="${OPTARG}"
+            ;;
+        s)
+            params[staple]="1"
+            params[wait]="1"
+            ;;
+        d)
+            r_output="/dev/stdout"
+            params[debug]="1"
+            ;;
+        h)
+            print_help
+            exit 0
+            ;;
+        *)
+            print_help
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+[ "${1:-}" = "--" ] && shift
+
+command="${1}"
+
+case "${command}" in
+    notarize)
+        bundle_id="${2}"
+        path="${3}"
+        uuid="$(notarize "${bundle_id}" "${path}")"
+        if [ -z "${params[wait]}" ]; then
+            puts "${uuid}"
+            exit
+        fi
+        wait_for_notarization "${uuid}"
+        validate "${uuid}"
+        if [ -n "${params[staple]}" ]; then
+            staple "${path}"
+        fi
+        ;;
+    info)
+        uuid="${2}"
+        key="${3}"
+        output="$(info "${uuid}")"
+        if [ -z "${key}" ]; then
+            puts "${output}"
+        else
+            puts "$(get_info "${key}" "${output}")"
+        fi
+        ;;
+    staple)
+        path="${2}"
+        staple "${path}"
+        ;;
+    wait)
+        uuid="${2}"
+        wait_for_notarization "${uuid}"
+        validate "${uuid}"
+        ;;
+    log)
+        uuid="${2}"
+        output=$(info "${uuid}")
+        show_log "${output}"
+        ;;
+    validate)
+        uuid="${2}"
+        validate "${uuid}"
+        ;;
+    *)
+        print_help
+esac
