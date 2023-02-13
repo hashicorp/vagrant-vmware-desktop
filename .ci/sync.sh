@@ -42,3 +42,12 @@ fi
 echo "Pushing ${ident_ref} to mirror..."
 wrap_stream git push mirror "${ident_ref}" \
             "Failed to sync mirror repository (${remote_repository})"
+
+# Push tags _only_ to the builder repository
+if [ "${repo_name}" = "vagrant-vmware-desktop-builder" ] || [ -z "${tag}" ]; then
+    exit
+fi
+
+echo "Pushing tag ${tag} to mirror..."
+wrap_stream git push mirror "${tag}" \
+    "Failed to push tag ${tag} to mirror repository (${remote_repository})"
