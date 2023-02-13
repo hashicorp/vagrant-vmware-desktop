@@ -14,7 +14,6 @@ group :development do
   gem "rspec", "~> 3.1"
   gem "rspec-its", "~> 1.1"
   gem "webmock", "~> 1.9.3"
-  gem "pry-byebug"
 
   #gem "debugger", "~> 1.3.1"
   #gem "vagrant-spec", :git => "git://github.com/mitchellh/vagrant-spec.git"
