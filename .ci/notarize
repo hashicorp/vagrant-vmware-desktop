@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+bundle_id="${1}"
+path="${2}"
+
+if ! uuid="$(rubber-stamp notarize "${bundle_id}" "${path}")"; then
+    echo "Pausing and trying notarization request again..."
+    sleep 30
+    uuid="$(rubber-stamp notarize "${bundle_id}" "${path}")" || exit
+fi
+
+retries=5
+while [ "${retries}" -gt 0 ]; do
+    if rubber-stamp wait "${uuid}"; then
+        break
+    fi
+    retries=$((retries-1))
+    if [ "${retries}" -gt 0 ]; then
+        echo "... Pausing and retrying notarization wait ..."
+        sleep 30
+    fi
+done
+
+if ! rubber-stamp validate "${uuid}"; then
+    echo "Notarization failed, fetching logs..."
+    rubber-stamp logs "${uuid}"
+    exit 1
+fi
+
+if ! rubber-stamp staple "${DMG_PATH}"; then
+    echo "Failed to staple notarization to ${DMG_PATH}"
+    exit 1
+fi

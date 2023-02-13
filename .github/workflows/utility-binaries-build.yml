@@ -1,0 +1,29 @@
+on:
+  push:
+    branches:
+      - 'build-utility-*'
+
+jobs:
+  build-utilities:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
+    name: Development Utility Builds
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Get version
+        id: info
+        run: ./.ci/utility-information
+      - name: Build utilities
+        run: make all
+      - name: Publish utilities
+        run: . ./.ci/load-ci.sh && prerelease "${UTILITY_VERSION}" ./bin
+        env:
+          UTILITY_VERSION: ${{ steps.info.outputs.utility-version }}

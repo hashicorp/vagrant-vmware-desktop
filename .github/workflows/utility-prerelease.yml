@@ -1,0 +1,45 @@
+on:
+  push:
+    branches:
+      - 'build-utility-*'
+
+jobs:
+  build-packages:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    name: Build packages
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/build-utility-packages.yml
+    secrets: inherit
+  prerelease:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    needs: [build-packages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Fetch linux packages
+        run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
+        env:
+          CACHE_ID: ${{ needs.build-packages.outputs.linux-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Fetch macOS packages
+      #   run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
+      #   env:
+      #     CACHE_ID: ${{ needs.build-packages.outputs.macos-cache-id }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch windows packages
+        run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
+        env:
+          CACHE_ID: ${{ needs.build-packages.outputs.windows-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish release
+        run: . .ci/load-ci.sh && prerelease "${UTILITY_VERSION}" "./pkg"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UTILITY_VERSION: ${{ needs.build-packages.outputs.utility-version }}

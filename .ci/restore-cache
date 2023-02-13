@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+cache_name="${1}"
+destination="${2}"
+
+# Sanity checks
+if [ -z "${destination}" ]; then
+    failure "destination for cache assets required"
+fi
+
+if [ -z "${cache_name}" ]; then
+    failure "name of cache required"
+fi
+
+if [ ! -d "${destination}" ] && [ -e "${destination}" ]; then
+    failure "destination already exists and is not a directory"
+fi
+
+# Ensure directory exists
+mkdir -p "${destination}" || failure "Could not create destination directory (${destination})"
+
+# Move into destination directory prior to download
+pushd "${destination}"
+
+# Now download all the artifacts within the draft release
+github_draft_release_assets "${repo_owner}" "${repo_name}" "${cache_name}"
