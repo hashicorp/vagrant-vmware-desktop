@@ -3,42 +3,31 @@ on:
     tags:
       - 'desktop-v*'
 
-env:
-  ASSETS_PRIVATE_BUCKET: ${{ secrets.ASSETS_PRIVATE_BUCKET }}
-  ASSETS_PRIVATE_LONGTERM: ${{ secrets.ASSETS_PRIVATE_LONGTERM }}
-  ASSETS_PRIVATE_SHORTTERM: ${{ secrets.ASSETS_PRIVATE_SHORTTERM }}
-  ASSETS_PUBLIC_BUCKET: ${{ secrets.ASSETS_PUBLIC_BUCKET }}
-  ASSETS_PUBLIC_SHORTTERM: ${{ secrets.ASSETS_PUBLIC_SHORTTERM }}
-  ASSETS_PUBLIC_LONGTERM: ${{ secrets.ASSETS_PUBLIC_LONGTERM }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_ASSUME_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-  HASHIBOT_EMAIL: ${{ secrets.HASHIBOT_EMAIL }}
-  HASHIBOT_USERNAME: ${{ secrets.HASHIBOT_USERNAME }}
-  SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-  VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
-
 jobs:
   release:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
     name: Vagrant VMware Desktop Plugin Release
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # set this so we can push our branch later
       - name: Setup Ruby
         uses: actions/setup-ruby@v1
         with:
-          ruby-version: '2.7'
-          architecture: 'x64'
-      - name: Release Vagrant VMware Desktop Plugin
-        run: ./.ci/release-plugin.sh
+          ruby-version: '3.1'
+      - name: Build Vagrant VMware Desktop Plugin
+        id: build
+        run: ./.ci/build-plugin
+      - name: Create Local Release
+        run: . ./.ci/load-ci.sh && release "${GITHUB_REF##*tags/}" "${GEM_PATH}"
         env:
-          HASHIGEMS_METADATA_BUCKET: ${{ secrets.HASHIGEMS_METADATA_BUCKET }}
-          HASHIGEMS_PUBLIC_BUCKET: ${{ secrets.HASHIGEMS_PUBLIC_BUCKET }}
-          HASHIGEMS_CLOUDFRONT_ID: ${{ secrets.HASHIGEMS_CLOUDFRONT_ID }}
-          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
-        working-directory: ${{github.workspace}}
-      - name: Clean Workspace
-        if: always()
-        run: rm -rf ${{ github.workspace }}
+          GEM_PATH: ${{ steps.build.outputs.gem-path }}
+      - name: Push Branch to Publish
+        run: ./.ci/push-publish-branch
+        env:
+          PUBLISH_BRANCH: ${{ secrets.HASHIGEMS_PUBLISH_BRANCH }}

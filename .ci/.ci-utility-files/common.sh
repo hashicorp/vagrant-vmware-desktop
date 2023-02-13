@@ -3,6 +3,13 @@
 # shellcheck disable=SC2119
 # shellcheck disable=SC2164
 
+# Coloring
+TEXT_BOLD='\e[1m'
+TEXT_RED='\e[31m'
+TEXT_GREEN='\e[32m'
+TEXT_YELLOW='\e[33m'
+TEXT_CLEAR='\e[0m'
+
 # Common variables
 export full_sha="${GITHUB_SHA}"
 export short_sha="${full_sha:0:8}"
@@ -118,6 +125,42 @@ function output_file() {
     printf "%s" "${ci_output_file_path}"
 }
 
+# Write debug output to stderr. Message template
+# and arguments are passed to `printf` for formatting.
+#
+# -f FN_NAME - set function name in output
+# -s SCRIPT_NAME - set script name in ouput
+#
+# $1: message template
+# $#: message arguments
+function debug() {
+    local OPTIND opt fn scrpt
+    while getopts ":f:s:" opt; do
+        case "${opt}" in
+            "f") fn="${OPTARG}" ;;
+            "s") scrpt="${OPTARG}" ;;
+            *) failure "Invalid flag provided to debug" ;;
+        esac
+    done
+    shift $((OPTIND-1))
+    local msg_template="${1}"
+    local i=$(( "${#}" - 1 ))
+    local msg_args=("${@:2:$i}")
+
+    if [ -n "${fn}" ]; then
+        msg_template="<fn:${fn}> ${msg_template}"
+    elif [ -n "${scrpt}" ]; then
+        msg_template="<script:${scrpt}> ${msg_template}"
+    else
+        msg_template="<main> ${msg_template}"
+    fi
+
+    #shellcheck disable=SC2059
+    msg="$(printf "${msg_template}" "${msg_args[@]}")"
+
+    printf "%b%s%b\n" "${TEXT_YELLOW}" "${msg}" "${TEXT_CLEAR}" >&2
+}
+
 # Write failure message, send error to configured
 # slack, and exit with non-zero status. If an
 # "$(output_file)" file exists, the last 5 lines will be
@@ -155,7 +198,7 @@ function warn() {
 # $@{1:$#-1}: Command to execute
 # $@{$#}: Failure message
 function wrap() {
-    i=$(("${#}" - 1))
+    local i=$(("${#}" - 1))
     if ! wrap_raw "${@:1:$i}"; then
         cat "$(output_file)"
         failure "${@:$#}"
@@ -1357,6 +1400,326 @@ function github_release_assets() {
     done
 }
 
+# Basic helper to create a GitHub prerelease
+#
+# $1: organization name
+# $2: repository name
+# $3: tag name for release
+# $4: path to artifact(s) - single file or directory
+function github_prerelease() {
+    local prerelease_org="${1}"
+    local prerelease_repo="${2}"
+    local tag_name="${3}"
+    local artifacts="${4}"
+    local prerelease_target="${prerelease_org}/${prerelease_repo}"
+
+    if [ -z "${prerelease_org}" ]; then
+        failure "Name of organization required for prerelease release"
+    fi
+
+    if [ -z "${prerelease_repo}" ]; then
+        failure "Name of repository required for prerelease release"
+    fi
+
+    if [ -z "${tag_name}" ]; then
+        failure "Name is required for prerelease release"
+    fi
+
+    if [ -z "${artifacts}" ]; then
+        failure "Artifacts path is required for prerelease release"
+    fi
+
+    if [ ! -e "${artifacts}" ]; then
+        failure "No artifacts found at provided path (${artifacts})"
+    fi
+
+    # Create the prerelease
+    local response
+    response="$(github_create_release -p -t "${tag_name}" -o "${prerelease_org}" -r "${prerelease_repo}" )" ||
+        failure "Failed to create prerelease on ${prerelease_target}"
+
+    # Extract the release ID from the response
+    local release_id
+    release_id="$(printf "%s" "${response}" | jq -r '.id')" ||
+        failure "Failed to extract prerelease ID from response for ${tag_name} on ${prerelease_target}"
+
+    github_upload_release_artifacts "${prerelease_target}" "${release_id}" "${artifacts}"
+
+}
+
+# Upload artifacts to a release
+#
+# $1: target repository (org/repo format)
+# $2: release ID
+# $3: path to artifact(s) - single file or directory
+function github_upload_release_artifacts() {
+    local target_repo="${1}"
+    local release_id="${2}"
+    local artifacts="${3}"
+
+    # TODO: Add sanity checks
+
+    # Swap out repository to force correct github token
+    local repository_bak="${repository}"
+    repository="${target_repo}"
+
+    local req_args=("-X" "POST" "-H" "Content-Type: application/octet-stream")
+
+    # Now upload the artifacts to the draft release
+    local artifact_name
+    if [ -f "${artifacts}" ]; then
+        echo "Doing file upload"
+        printf "It thinks artifacts (%s) is a file\n" "${artifacts}" >&2
+        artifact_name="${artifacts%%*/}"
+        req_args+=("https://uploads.github.com/repos/${target_repo}/releases/${release_id}/assets?name=${artifact_name}"
+                   "--data-binary" "@${artifacts}")
+        if ! github_request "${req_args[@]}" > /dev/null ; then
+            failure "Failed to upload artifact '${artifacts}' to draft release on ${draft_target}"
+        fi
+        printf "Uploaded release artifact: %s\n" "${artifact_name}" >&2
+        # Everything is done so get on outta here
+        return 0
+    fi
+
+    echo "Doing directory upload"
+    # Push into the directory
+    pushd "${artifacts}"
+
+    # Walk through each item and upload
+    for artifact_name in * ; do
+        if [ ! -f "${artifact_name}" ]; then
+            printf "Warning: Skipping '%s' as it is not a file\n" "${artifact_name}" >&2
+            continue
+        fi
+        echo "Process artifact: ${artifact_name}"
+        local r_args=( "${req_args[@]}" )
+        r_args+=("https://uploads.github.com/repos/${target_repo}/releases/${release_id}/assets?name=${artifact_name}"
+                   "--data-binary" "@${artifact_name}")
+        if ! github_request "${r_args[@]}" > /dev/null ; then
+            failure "Failed to upload artifact '${artifact_name}' in '${artifacts}' to draft release on ${target_repo}"
+        fi
+        printf "Uploaded release artifact: %s\n" "${artifact_name}" >&2
+    done
+}
+
+# Basic helper to create a GitHub draft release
+#
+# $1: organization name
+# $2: repository name
+# $3: tag name for release
+# $4: path to artifact(s) - single file or directory
+function github_draft_release() {
+    local draft_org="${1}"
+    local draft_repo="${2}"
+    local tag_name="${3}"
+    local artifacts="${4}"
+    local draft_target="${draft_org}/${draft_repo}"
+
+    if [ -z "${draft_org}" ]; then
+        failure "Name of organization required for draft release"
+    fi
+
+    if [ -z "${draft_repo}" ]; then
+        failure "Name of repository required for draft release"
+    fi
+
+    if [ -z "${tag_name}" ]; then
+        failure "Name is required for draft release"
+    fi
+
+    if [ -z "${artifacts}" ]; then
+        failure "Artifacts path is required for draft release"
+    fi
+
+    if [ ! -e "${artifacts}" ]; then
+        failure "No artifacts found at provided path (${artifacts})"
+    fi
+
+    # Create the draft release
+    local response
+    response="$(github_create_release -d -t "${tag_name}" -o "${draft_org}" -r "${draft_repo}" )" ||
+        failure "Failed to create draft release on ${draft_target}"
+
+    # Extract the release ID from the response
+    local release_id
+    release_id="$(printf "%s" "${response}" | jq -r '.id')" ||
+        failure "Failed to extract draft release ID from response for ${tag_name} on ${draft_target}"
+
+    github_upload_release_artifacts "${draft_target}" "${release_id}" "${artifacts}"
+}
+
+# Create a GitHub release
+#
+# -b BODY - body of release
+# -c COMMITISH - commitish of release
+# -n NAME - name of the release
+# -o OWNER - repository owner (required)
+# -r REPO - repository name (required)
+# -t TAG_NAME - tag name for release (required)
+# -d - draft release
+# -p - prerelease
+# -g - generate release notes
+# -m - make release latest
+#
+# NOTE: Artifacts for release must be uploaded using `github_upload_release_artifacts`
+function github_create_release() {
+    local OPTIND opt owner repo tag_name
+    # Values that can be null
+    local body commitish name
+    # Values we default
+    local draft="false"
+    local generate_notes="false"
+    local make_latest="false"
+    local prerelease="false"
+
+    while getopts ":b:c:n:o:r:t:dpgm" opt; do
+        case "${opt}" in
+            "b") body="${OPTARG}" ;;
+            "c") commitish="${OPTARG}" ;;
+            "n") name="${OPTARG}" ;;
+            "o") owner="${OPTARG}" ;;
+            "r") repo="${OPTARG}" ;;
+            "t") tag_name="${OPTARG}" ;;
+            "d") draft="true" ;;
+            "p") prerelease="true" ;;
+            "g") generate_notes="true" ;;
+            "m") make_latest="true" ;;
+            *) failure "Invalid flag provided to lock_issues" ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Sanity check
+    if [ -z "${owner}" ]; then
+        failure "Repository owner value is required for GitHub release"
+    fi
+
+    if [ -z "${repo}" ]; then
+        failure "Repository name is required for GitHub release"
+    fi
+
+    if [ -z "${tag_name}" ]; then
+        failure "Tag name is required for GitHub release"
+    fi
+
+    # If no name is provided, use the tag name value
+    if [ -z "${name}" ]; then
+        name="${tag_name}"
+    fi
+
+    # shellcheck disable=SC2016
+    local payload_template='{tag_name: $tag_name, draft: $draft, prerelease: $prerelease, generate_release_notes: $generate_notes, make_latest: $make_latest'
+    local jq_args=("-n"
+                   "--arg" "tag_name" "${tag_name}"
+                   "--arg" "make_latest" "${make_latest}"
+                   "--argjson" "draft" "${draft}"
+                   "--argjson" "generate_notes" "${generate_notes}"
+                   "--argjson" "prerelease" "${prerelease}"
+                  )
+
+    if [ -n "${commitish}" ]; then
+        # shellcheck disable=SC2016
+        payload_template+=', target_commitish: $commitish'
+        jq_args+=("--arg" "commitish" "${commitish}")
+    fi
+    if [ -n "${name}" ]; then
+        # shellcheck disable=SC2016
+        payload_template+=', name: $name'
+        jq_args+=("--arg" "name" "${name}")
+    fi
+    if [ -n "${body}" ]; then
+        # shellcheck disable=SC2016
+        payload_template+=', body: $body'
+        jq_args+=("--arg" "body" "${body}")
+    fi
+    payload_template+='}'
+
+    # Generate the payload
+    local payload
+    payload="$(jq "${jq_args[@]}" "${payload_template}" )" ||
+        failure "Could not generate GitHub release JSON payload"
+
+    local target_repo="${owner}/${repo}"
+    # Set repository to get correct token behavior on request
+    local repository_bak="${repository}"
+    repository="${target_repo}"
+
+    # Craft our request arguments
+    local req_args=("-X" "POST" "https://api.github.com/repos/${target_repo}/releases" "-d" "${payload}")
+
+    # Create the draft release
+    local response
+    if ! response="$(github_request "${req_args[@]}")"; then
+        failure "Could not create draft release on ${draft_target}"
+    fi
+
+    # Restore the repository
+    repository="${repository_bak}"
+
+    # Report new draft release was created
+    printf "New draft release '%s' created on '%s'\n" "${tag_name}" "${target_repo}" >&2
+
+    # Print the response
+    printf "%s" "${response}"
+}
+
+# Check if a draft release exists by name
+#
+# $1: organization name
+# $2: repository name
+# $3: release name
+function github_draft_release_exists() {
+    local release_org="${1}"
+    local release_repo="${2}"
+    local release_target="${1}/${2}"
+    local release_name="${3}"
+
+    if [ -z "${release_org}" ]; then
+        failure "Repository organization required for draft release lookup"
+    fi
+    if [ -z "${release_repo}" ]; then
+        failure "Repository name required for draft release lookup"
+    fi
+    if [ -z "${release_name}" ]; then
+        failure "Release name required for draft release lookup"
+    fi
+
+    local page=$((1))
+    local release_content=""
+
+    # Override $repository so we get correct token behavior
+    local repository_bak="${repository}"
+    repository="${release_target}"
+
+    while [ -z "${release_content}" ]; do
+        local release_list
+        release_list="$(github_request \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${release_target}/releases?per_page=100&page=${page}")" ||
+            failure "Failed to request releases list for ${release_target}"
+
+        # If there's no more results, just bust out of the loop
+        if [ "$(jq 'length' <( printf "%s" "${release_list}" ))" -lt "1" ]; then
+            break
+        fi
+
+        query="$(printf '.[] | select(.name == "%s")' "${release_name}")"
+
+        release_content=$(printf "%s" "${release_list}" | jq -r "${query}")
+
+        ((page++))
+    done
+
+    # Restore the $repository value
+    repository="${repository_bak}"
+
+    if [ -z "${release_content}" ]; then
+        return 1
+    fi
+
+    return 0
+}
+
 # Download artifact(s) from GitHub draft release. A draft release is not
 # attached to a tag and therefore is referenced by the release name directly.
 # The artifact pattern is simply a substring that is matched against the
@@ -1377,12 +1740,25 @@ function github_draft_release_assets() {
         failure "Fetching draft release assets requires hashibot or github token with write permission"
     fi
 
-    local release_list release_repo release_name asset_pattern release_content
+    local release_list release_content
     local name_list query artifact asset_names idx page
 
-    release_repo="${1}/${2}"
-    release_name="${3}"
-    asset_pattern="${4}"
+    local release_owner="${1}"
+    local release_repo_name="${2}"
+    local release_name="${3}"
+    local asset_pattern="${4}"
+
+    if [ -z "${release_owner}" ]; then
+        failure "Repository owner name is required for draft release asset fetching"
+    fi
+    if [ -z "${release_repo_name}" ]; then
+        failure "Repository name is required for draft release asset fetching"
+    fi
+    if [ -z "${release_name}" ]; then
+        failure "Draft release name is required for draft release asset fetching"
+    fi
+
+    local release_repo="${release_owner}/${release_repo_name}"
 
     page=$((1))
     while [ -z "${release_content}" ]; do
@@ -1665,6 +2041,46 @@ function delete_draft_release() {
 
 }
 
+# Grab the correct github token to use for authentication. The
+# rules used for the token to return are as follows:
+#
+# * only $GITHUB_TOKEN is set: $GITHUB_TOKEN
+# * only $HASHIBOT_TOKEN is set: $HASHIBOT_TOKEN
+#
+# when both $GITHUB_TOKEN and $HASHIBOT_TOKEN are set:
+#
+# * $repository value matches $GITHUB_REPOSITORY: $GITHUB_TOKEN
+# * $repository value does not match $GITHUB_REPOSITORY: $HASHIBOT_TOKEN
+#
+# Will return `0` when a token is returned, `1` when no token is returned
+function github_token() {
+    local gtoken
+
+    # Return immediately if no tokens are available
+    if [ -z "${GITHUB_TOKEN}" ] && [ -z "${HASHIBOT_TOKEN}" ]; then
+        return 1
+    fi
+
+    # Return token if only one token exists
+    if [ -n "${GITHUB_TOKEN}" ] && [ -z "${HASHIBOT_TOKEN}" ]; then
+        printf "%s\n" "${GITHUB_TOKEN}"
+        return 0
+    elif [ -n "${HASHIBOT_TOKEN}" ] && [ -z "${GITHUB_TOKEN}" ]; then
+        printf "%s\n" "${HASHIBOT_TOKEN}"
+        return 0
+    fi
+
+    # If the $repository matches the original $GITHUB_REPOSITORY use the local token
+    if [ "${repository}" = "${GITHUB_REPOSITORY}" ]; then
+        printf "%s\n" "${GITHUB_TOKEN}"
+        return 0
+    fi
+
+    # Still here, then we send back that hashibot token
+    printf "%s\n" "${HASHIBOT_TOKEN}"
+    return 0
+}
+
 # This function is used to make requests to the GitHub API. It
 # accepts the same argument list that would be provided to the
 # curl executable. It will check the response status and if a
@@ -1679,8 +2095,19 @@ function github_request() {
     local request_exit=0
     local raw_response_content
 
+    local curl_cmd=("curl" "-i" "-SsL" "--fail")
+    local gtoken
+
+    # Only add the authentication token if we have one
+    if gtoken="$(github_token)"; then
+        curl_cmd+=("-H" "Authorization: token ${gtoken}")
+    fi
+
+    # Attach the rest of the arguments
+    curl_cmd+=("${@#}")
+
     # Make our request
-    raw_response_content="$(curl -i -SsL --fail "${@#}")" || request_exit="${?}"
+    raw_response_content="$("${curl_cmd[@]}")" || request_exit="${?}"
 
     local status
     local ratelimit_reset
@@ -1698,6 +2125,8 @@ function github_request() {
         # The line will have a trailing `\r` so just
         # trim it off
         local line="${lines[$i]%%$'\r'*}"
+        # strip any leading/trailing whitespace characters
+        read -rd '' line <<< "${line}"
 
         if [ -z "${line}" ] && [[ "${status}" = "2"* ]]; then
             local start="$(( i + 1 ))"

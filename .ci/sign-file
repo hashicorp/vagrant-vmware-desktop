@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+# NOTE: Don't move to the root directory since we don't care and want
+#       to be sure we don't muck paths provided
+
+binary_identifier=""
+
+while getopts ":b:" opt; do
+    case "${opt}" in
+        "b") binary_identifier="${OPTARG}" ;;
+        *) failure "Invalid flag provided" ;;
+    esac
+    shift $((OPTIND-1))
+done
+
+input_file="${1}"
+
+if [ -z "${input_file}" ]; then
+    failure "Input file is required for signing"
+fi
+
+if [ -z "${SIGNORE_CLIENT_ID}" ]; then
+    failure "SIGNORE_CLIENT_ID environment variable is required for signing"
+fi
+
+if [ -z "${SIGNORE_CLIENT_SECRET}" ]; then
+    failure "SIGNORE_CLIENT_SECRET environment variable is required for signing"
+fi
+
+if [ -z "${SIGNORE_SIGNER}" ]; then
+    failure "SIGNORE_SIGNER environment variable is required for signing"
+fi
+
+# Base args for signing
+signore_args=("sign" "--file" "${input_file}" "--out" "${input_file}" "--match-file-mode")
+
+# If a binary identifier was provided, then it's a macOS signing
+if [ -n "${binary_identifier}" ]; then
+    template='{type: "macos", input_format: "EXECUTABLE", binary_identifier: $identifier}'
+    payload="$(jq -n --arg identifier "${binary_identifier}" "${template}")"
+    signore_args+=("--signer-options" "${payload}")
+fi
+
+signore "${signore_args[@]}" ||
+    failure "Failed to sign file '%s'" "${input_file}"

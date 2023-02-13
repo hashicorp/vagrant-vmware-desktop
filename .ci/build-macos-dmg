@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+full_pkg="${1?"Path to full installer package required"}"
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+# Run sanity checks
+if [ ! -f "${full_pkg}" ]; then
+    fail "Full package is not found at provided path (${full_pkg})"
+fi
+
+if [ -z "${UTILITY_VERSION}" ]; then
+    fail "Utility version is not provided in expected environment variable (UTILITY_VERSION)"
+fi
+
+# Properly formatted name for releases
+asset_name="vagrant-vmware-utility_${UTILITY_VERSION}_darwin_amd64.dmg"
+
+# Check if we have the dmgbuild command available. If not,
+# install it now.
+if ! command -v dmgbuild > /dev/null 2>&1; then
+    pip3 install dmgbuild ||
+        fail "Failed to install dmgbuild"
+    # biplist is required but not auto installed as a dependency
+    pip3 install biplist ||
+        fail "Failed to install dmgbuild dependency library biplist"
+fi
+
+# Make sure our output directory exists
+mkdir -p "${root}/pkg-tmp" || fail "Could not create ./pkg-tmp directory"
+output_path="${root}/pkg-tmp/${asset_name}"
+
+# Create a directory for our DMG contents
+dmgdir="$(mktemp -d)" || fail "Failed to create dmg staging directory"
+cp -f "${full_pkg}" "${dmgdir}/VagrantVMwareUtility.pkg" ||
+    fail "Failed to add installer package to dmg staging directory"
+cp -f "${root}/package/macos/uninstall.tool" "${dmgdir}/uninstall.tool" ||
+    fail "Failed to add uninstall tool to dmg staging directory"
+chmod +x "${dmgdir}/uninstall.tool" ||
+    fail "Failed to modify permissions on uninstall tool in dmg staging directory"
+
+# Lets build our DMG
+dmgbuild -s "${root}/macos/dmgbuild.py" \
+    -D srcfolder="${dmgdir}" \
+    -D backgroundimg="${root}/macos/background_installer.png" \
+    "Vagrant VMware Utility" \
+    "${output_path}" ||
+    fail "Failed to build DMG"
+
+printf "dmg-path=%s\n" "${output_path}" >> "${GITHUB_OUTPUT}"

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+gem_path="${1}"
+if [ -z "${gem_path}" ]; then
+    failure "Path to plugin gem file is required for publishing"
+fi
+
+if [ ! -f "${gem_path}" ]; then
+    failure "Path provided does not contain a file (%s)" "${gem_path}"
+fi
+
+# Publish our gem
+publish_to_rubygems "${gem_path}"

@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+# Path where utility binary should be found
+bin="${root}/bin/vagrant-vmware-utility_linux"
+
+# Run sanity checks
+if [ ! -f "${bin}" ]; then
+    fail "Utility binary is not found at expected path (${bin})"
+fi
+
+if [ -z "${UTILITY_VERSION}" ]; then
+    fail "Utility version is not provided in expected environment variable (UTILITY_VERSION)"
+fi
+
+# Ensure binary is executable
+chmod 0755 "${bin}" ||
+    failure "Could not make bin file executable (${bin})"
+
+# Define the path to store the final package
+asset="${root}/pkg/vagrant-vmware-utility_${UTILITY_VERSION}-1-x86_64.pkg.tar.zst"
+
+# The bsdtar command is required, so check that it is available. If not,
+# attempt to install it. If install is not possible, fail now.
+if ! command -v bsdtar > /dev/null 2>&1; then
+    if ! command -v apt-get > /dev/null 2>&1; then
+        failure "Missing required executable 'bsdtar' for building pacman package"
+    fi
+    wrap sudo apt-get install -yq libarchive-tools \
+        "Could not install libarchive-tools which provides required 'bsdtar' executable for building pacman package"
+fi
+
+# Create the final storage directory
+mkdir -p "${root}/pkg" || fail "Could not create ./pkg directory"
+# Create a staging directory to work in
+stage="$(mktemp -d)" || fail "Could not create staging directory"
+# Create an init directory to store init file
+init="$(mktemp -d)" || fail "Could not create init directory"
+
+# Setup the staging directory for packaging
+mkdir -p "${stage}/opt/vagrant-vmware-desktop/bin"
+cp -f "${bin}" "${stage}/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" ||
+    fail "Could not add utility binary to staging directory"
+chmod -R 0755 "${stage}/opt/vagrant-vmware-desktop" ||
+    fail "Could not modify permissions on staging directory"
+
+mkdir -p "${stage}/opt/vagrant-vmware-desktop/config" ||
+    fail "Could not create configuration directory within staging"
+
+"${bin}" service install \
+    -print \
+    -config-write "${stage}/opt/vagrant-vmware-desktop/config/service.hcl" \
+    -config-path "/opt/vagrant-vmware-desktop/config/service.hcl" \
+    -exe-path "/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" \
+    -init-style "systemd" > "${init}/vagrant-vmware-utility.service" ||
+    fail "Failed to generate systemd unit file"
+
+bundle exec fpm -p "${asset}" \
+    -n vagrant-vmware-utility \
+    -v "${UTILITY_VERSION}" \
+    -t pacman \
+    -s dir \
+    -C "${stage}" \
+    --log error \
+    --prefix '/' \
+    --maintainer "HashiCorp Vagrant <vagrant@hashicorp.com>" \
+    --url "https://www.vagrantup.com/" \
+    --epoch 1 \
+    --license "MPL-2.0" \
+    --vendor "HashiCorp" \
+    --description "Vagrant utility for VMware Workstation and Player" \
+    --config-files "opt/vagrant-vmware-desktop/config/service.hcl" \
+    --after-install "${root}/package/pacman/after_install.sh" \
+    --before-upgrade "${root}/package/pacman/before_upgrade.sh" \
+    --after-upgrade "${root}/package/pacman/after_upgrade.sh" \
+    --before-remove "${root}/package/pacman/before_remove.sh" \
+    --pacman-user root \
+    --pacman-group root \
+    . || fail "Failed to create pacman package"

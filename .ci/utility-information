@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+version="$(<go_src/vagrant-vmware-utility/version/version.go)"
+version="${version##*VERSION = \"}"
+version="${version%%\"*}"
+util_id="$(git log --format=%h -1 ./go_src)" ||
+    failure "Could not generate commit sha for ./go_src"
+
+unsigned_id="utility-${util_id}-unsigned"
+signed_id="utility-${util_id}-signed"
+linux_id="utility-${util_id}-linux"
+macos_id="utility-${util_id}-macos"
+windows_id="utility-${util_id}-windows"
+
+# Create information outputs for cache identifiers and
+# if the cache currently exists
+
+# Define the utility version
+printf "utility-version=%s\n" "${version}"
+printf "utility-version=%s\n" "${version}" >> "${GITHUB_OUTPUT}"
+
+# Set unsigned cache identifer and check existence
+printf "unsigned-cache-id=%s\n" "${unsigned_id}"
+printf "unsigned-cache-id=%s\n" "${unsigned_id}" >> "${GITHUB_OUTPUT}"
+if github_draft_release_exists "${repo_owner}" "${repo_name}" "${unsigned_id}"; then
+    printf "unsigned-cache-exists=true\n"
+    printf "unsigned-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
+fi
+
+# Set signed cache identifer and check existence
+printf "signed-cache-id=%s\n" "${signed_id}"
+printf "signed-cache-id=%s\n" "${signed_id}" >> "${GITHUB_OUTPUT}"
+if github_draft_release_exists "${repo_owner}" "${repo_name}" "${signed_id}"; then
+    printf "signed-cache-exists=true\n"
+    printf "signed-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
+fi
+
+# Set linux cache identifer and check existence
+printf "linux-cache-id=%s\n" "${linux_id}"
+printf "linux-cache-id=%s\n" "${linux_id}" >> "${GITHUB_OUTPUT}"
+if github_draft_release_exists "${repo_owner}" "${repo_name}" "${linux_id}"; then
+    printf "linux-cache-exists=true\n"
+    printf "linux-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
+fi
+
+# Set macos cache identifer and check existence
+printf "macos-cache-id=%s\n" "${macos_id}"
+printf "macos-cache-id=%s\n" "${macos_id}" >> "${GITHUB_OUTPUT}"
+if github_draft_release_exists "${repo_owner}" "${repo_name}" "${macos_id}"; then
+    printf "macos-cache-exists=true\n"
+    printf "macos-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
+fi
+
+# Set windows cache identifer and check existence
+printf "windows-cache-id=%s\n" "${windows_id}"
+printf "windows-cache-id=%s\n" "${windows_id}" >> "${GITHUB_OUTPUT}"
+if github_draft_release_exists "${repo_owner}" "${repo_name}" "${windows_id}"; then
+    printf "windows-cache-exists=true\n"
+    printf "windows-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
+fi

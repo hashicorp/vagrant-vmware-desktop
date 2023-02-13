@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+# Create a new branch for publishing
+git checkout -b "${PUBLISH_BRANCH}" ||
+    failure "Could not checkout new branch name %s" "${PUBLISH_BRANCH}"
+
+# Force push the branch as we do not care what already exists
+git push origin --force ||
+    failure "Could not push branch '%s' to origin" "${PUBLISH_BRANCH}"

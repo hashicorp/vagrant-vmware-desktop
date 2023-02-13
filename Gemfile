@@ -7,7 +7,7 @@ group :development do
   elsif ENV["VAGRANT_PATH"]
     gem "vagrant", path: ENV["VAGRANT_PATH"]
   else
-    gem "vagrant", git: "git://github.com/mitchellh/vagrant.git"
+    gem "vagrant", git: "https://github.com/hashicorp/vagrant.git"
   end
 
   gem "rake"
