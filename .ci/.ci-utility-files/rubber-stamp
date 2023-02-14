@@ -1,25 +1,31 @@
 #!/usr/bin/env bash
 
 # Setup some constants
-NOTARIZE="🍎"
-PACKAGE="📦"
-BANG="❗️"
-LOGS="🌲"
-WAITING="🕓"
-DEBUG="🐞"
-VALIDATE="🔎"
-RED="$(tput setaf 1)"
-YELLOW="$(tput setaf 3)"
-GREEN="$(tput setaf 2)"
-BOLD="$(tput bold)"
-CLEAR="$(tput sgr0)"
+NOTARIZE_PREFIX="🍎"
+PACKAGE_PREFIX="📦"
+BANG_PREFIX="❗️"
+LOGS_PREFIX="🌲"
+WAITING_PREFIX="🕓"
+DEBUG_PREFIX="🐞"
+VALIDATE_PREFIX="🔎"
 
+# Text formatting
+BOLD='\e[1m'
+RED='\e[31m'
+GREEN='\e[32m'
+YELLOW='\e[33m'
+CLEAR='\e[0m'
+
+# Interval for wait on recheck
 NOTARIZATION_WAIT_INTERVAL=30
 
 # Setup our defaults
-declare -A params
-params=(["username"]="${AC_USERNAME}" ["password"]="${AC_PASSWORD}" ["debug"]="")
-r_output="/dev/null"
+NOTARIZE_USERNAME="${AC_USERNAME}"
+NOTARIZE_PASSWORD="${AC_PASSWORD}"
+NOTARIZATION_STAPLE=""
+NOTARIZATION_WAIT=""
+
+DEBUG_TARGET="/dev/null"
 
 function print_help() {
     bin=$(basename "${0}")
@@ -45,41 +51,59 @@ function print_help() {
     echo -e "\t-u USERNAME\tApple ID username (default: AC_USERNAME)"
 }
 
+# Write a debug message
 function debug() {
-    if [ -n "${params[debug]}" ]; then
-        print "${BOLD}${YELLOW}${DEBUG}${CLEAR} <${1}> ${2}"
+    local location="${1}"
+    local msg="${2}"
+    if [ -z "${msg}" ]; then
+        msg="${location}"
+        location="main"
+    else
+        location="fn:${location}"
+    fi
+
+    if [ -n "${DEBUG}" ] && [ -n "${msg}" ]; then
+        printf "%s %b%b<%s>%b %s\n" "${DEBUG_PREFIX}" "${BOLD}" "${YELLOW}" \
+            "${location}" "${CLEAR}" "${msg}" > "${DEBUG_TARGET}"
     fi
 }
 
+# Write a message
 function print() {
-    echo -e "${1}" > /dev/stderr
+    local msg="${1}"
+    if [ -n "${msg}" ]; then
+        printf "%b\n" "${msg}" >&2
+    fi
 }
 
+# Write a message without a newline appended (to stderr)
+function write() {
+    local msg="${1}"
+    if [ -n "${msg}" ]; then
+        printf "%b" "${msg}" >&2
+    fi
+}
+
+# Write an error message and exit
 function error() {
-    print "${BOLD}${RED}${BANG}${CLEAR}${RED}${1}"
+    local msg="${1:-Unknown error}"
+    printf "%s %b%b%s%b\n" "${BANG_PREFIX}" "${BOLD}" "${RED}" "${msg}" "${CLEAR}" >&2
     exit 1
 }
 
-function write() {
-    echo -n -e "${1}" > /dev/stderr
-}
-
-function puts() {
-    echo -e "${1}"
-}
-
+# Consume an error message and pass it to error function
 function display_error() {
     msg="${1}"
     if [[ "${msg}" = *"*** Error:"* ]]; then
         error "${msg#*Error: }"
     else
         error "${msg##*$'\n'}"
-        error "Unknown error encountered"
     fi
 }
 
+# Validate path given exists
 function validate_path() {
-    path="${1}"
+    local path="${1}"
     if [ -z "${path}" ]; then
         error "PATH was not provided for notarization"
     fi
@@ -88,92 +112,132 @@ function validate_path() {
     fi
 }
 
+# Write failure notification
 function failure() {
-    print "${BOLD}${RED}failed${CLEAR}"
+    printf "%b%bfailed%b\n" "${BOLD}" "${RED}" "${CLEAR}" >&2
 }
 
+# Write success notification
 function success() {
-    print "${BOLD}${GREEN}success${CLEAR}"
+    printf "%b%bsuccess%b\n" "${BOLD}" "${GREEN}" "${CLEAR}" >&2
 }
 
+# Notarize artifact at given path
+#
+# $1: Bundle ID for artifact
+# $2: Path to artifact
 function notarize() {
-    bid="${1}"
-    path="${2}"
-    if [ -z "${bid}" ]; then
+    debug "notarize" "start: ${*}"
+    local bundle_id="${1}"
+    local path="${2}"
+    if [ -z "${bundle_id}" ]; then
         error "BUNDLE_ID is missing for notarization"
     fi
     validate_path "${path}"
 
-    write "${BOLD}${NOTARIZE}${CLEAR} Sending notarization request for ${path}... "
-    output=$(xcrun altool --notarize-app --username "${params[username]}" --password "${params[password]}" --primary-bundle-id "${bid}" --file "${path}" 2> "${r_output}")
-    result=$?
-    debug "notarization" "${output}"
-    if [ $result -ne 0 ]; then
+    write "${BOLD}${NOTARIZE_PREFIX}${CLEAR} Sending notarization request for ${path}... "
+    local output
+    debug "notarize" "sending notarization request"
+    if ! output="$(xcrun altool --notarize-app \
+        --username "${NOTARIZE_USERNAME}" \
+        --password "${NOTARIZE_PASSWORD}" \
+        --primary-bundle-id "${bundle_id}" \
+        --file "${path}" 2> "${DEBUG_TARGET}")"; then
+
         failure
         display_error "${output}"
     fi
     success
     uuid="${output#*RequestUUID = }"
-    puts "${uuid}"
+    printf "%s" "${uuid}"
 }
 
+# Get information about a notarization request
+#
+# $1: UUID of notarization request
+# $2: Set to prevent output generation
 function info() {
-    uuid="${1}"
-    quiet="${2}"
+    debug "info" "start: ${*}"
+    local uuid="${1}"
+    local quiet="${2}"
 
     if [ -z "${uuid}" ]; then
-        error "REQUEST_UUID is missing for lookup"
+        error "REQUEST_UUID is missing for notarization request lookup"
     fi
 
     if [ -z "${quiet}" ]; then
-        write "${BOLD}${NOTARIZE}${CLEAR} Looking up notarization information on ${uuid}... "
+        write "${BOLD}${NOTARIZE}${CLEAR} Looking up notarization request information on ${uuid}... "
     fi
-    output=$(xcrun altool --notarization-info "${uuid}" --username "${params[username]}" --password "${params[password]}" 2> "${r_output}")
-    result=$?
-    debug "info" "${output}"
-    if [ $result -ne 0 ]; then
+
+    local output
+    debug "info" "fetching notarization request information"
+    if ! output="$(xcrun altool --notarization-info "${uuid}" \
+        --username "${NOTARIZATION_USERNAME}" \
+        --password "${NOTARIZATION_PASSWORD}" 2> "${DEBUG_TARGET}")"; then
+
         failure
         display_error "${output}"
     fi
     if [ -z "${quiet}" ]; then
         success
     fi
-    echo "${output}"
+    debug "info" "notarization information request complete"
+    printf "%s" "${output}"
 }
 
+# Staple a notarization to artifact
+#
+# $1: Path to artifact
 function staple() {
-    path="${1}"
+    debug "staple" "start: ${*}"
+    local path="${1}"
     validate_path "${path}"
 
-    write "${BOLD}${PACKAGE}${CLEAR} Stapling notarization to ${path}... "
-    output=$(xcrun stapler staple "${path}" 2> "${r_output}")
-    result=$?
-    debug "staple" "${output}"
-    if [ $result -ne 0 ]; then
+    write "${BOLD}${PACKAGE_PREFIX}${CLEAR} Stapling notarization to ${path}... "
+
+    local output
+    debug "staple" "stapling notarization to asset"
+    if ! output="$(xcrun stapler staple "${path}" 2> "${DEBUG_TARGET}")"; then
         failure
         display_error "${output}"
     fi
     success
 }
 
+# Extract value for given key from provided content
+#
+# $1: key value
+# $2: content to search
 function get_info() {
-    key="${1}"
-    output="${2}"
+    debug "get_info" "start: ${*}"
+    local key="${1?"Key name required"}"
+    local content="${2?"Content to search required"}"
+
     debug "get_info" "key: ${key}"
-    debug "get_info" "output: ${output}"
+    debug "get_info" "content: ${content}"
     # shellcheck disable=SC2295
-    part="${output#*${key}: }"
-    val="${part%%$'\n'*}"
+    local part="${content#*${key}: }"
+    local val="${part%%$'\n'*}"
     debug "get_info" "value: ${val}"
-    puts "${val}"
+    printf "%s" "${val}"
 }
 
+# Fetch the notarization log for a request
+#
+# $1: Notarization request information (returned by `info`)
 function show_log() {
-    output="${1}"
-    url=$(get_info "LogFileURL" "${output}")
+    debug "show_log" "start: ${*}"
+    local notarization_info="${1}"
+    if [ -z "${notarization_info}" ]; then
+        error "No notarization information provided for log file lookup"
+    fi
+    debug "show_log" "${notarization_info}"
+    local url
+    url="$(get_info "LogFileURL" "${notarization_info}")" || return
+    debug "show_log" "discovered url: ${url}"
     if [ -n "${url}" ]; then
-        print "${BOLD}${LOGS}${CLEAR} Fetching notarization log... "
-        if ! curl -f "${url}"; then
+        print "${BOLD}${LOGS_PREFIX}${CLEAR} Fetching notarization log... "
+        if ! curl -SsL --fail "${url}"; then
             error "Failed to retrieve notarization log"
         fi
         return 0
@@ -181,13 +245,21 @@ function show_log() {
     return 1
 }
 
+# Waits for the given notarization request to reach
+# a completed state
+#
+# $1: UUID of notarization request
 function wait_for_notarization() {
-    uuid="${1}"
+    debug "wait_for_notarization" "start: ${*}"
+    local uuid="${1}"
     if [ -z "${uuid}" ]; then
-        error "UUID is required"
+        error "UUID of notarization request is required for wait"
     fi
 
-    write "${BOLD}${WAITING}${CLEAR} Waiting for notarization to complete ${uuid}... "
+    debug "wait_for_notarization" "uuid: ${uuid}"
+
+    local finished
+    write "${BOLD}${WAITING_PREFIX}${CLEAR} Waiting for notarization to complete ${uuid}... "
     while [ -z "${finished}" ]; do
         output="$(info "${uuid}" quiet)"
         status="$(get_info "Status" "${output}")"
@@ -202,14 +274,21 @@ function wait_for_notarization() {
     done
 }
 
+# Validate a notarization request is successfully completed
+#
+# $1: UUID of notarization request
 function validate() {
-    uuid="${1}"
+    debug "validate" "${*}"
+    local uuid="${1}"
     if [ -z "${uuid}" ]; then
-        error "UUID is required"
+        error "UUID of notarization request is required for validation"
     fi
-    write "${BOLD}${VALIDATE}${CLEAR} Validating notarization of ${uuid}... "
+
+    debug "validate" "uuid: ${uuid}"
+    write "${BOLD}${VALIDATE_PREFIX}${CLEAR} Validating notarization of ${uuid}... "
     output="$(info "${uuid}" quiet)"
     status="$(get_info "Status" "${output}")"
+    debug "validate" "status: ${status}"
     if [ "${status}" = "success" ]; then
         success
     else
@@ -221,18 +300,18 @@ function validate() {
 while getopts "u:p:sdh" opt; do
     case "${opt}" in
         u)
-            params[username]="${OPTARG}"
+            NOTARIZATION_USERNAME="${OPTARG}"
             ;;
         p)
-            params[password]="${OPTARG}"
+            NOTARIZATION_PASSWORD="${OPTARG}"
             ;;
         s)
-            params[staple]="1"
-            params[wait]="1"
+            NOTARIZATION_STAPLE="1"
+            NOTARIZATION_WAIT="1"
             ;;
         d)
-            r_output="/dev/stdout"
-            params[debug]="1"
+            DEBUG_TARGET="/dev/stderr"
+            DEBUG="1"
             ;;
         h)
             print_help
@@ -251,23 +330,29 @@ command="${1}"
 
 case "${command}" in
     notarize)
+        debug "running notarize command"
         bundle_id="${2}"
         path="${3}"
-        uuid="$(notarize "${bundle_id}" "${path}")"
-        if [ -z "${params[wait]}" ]; then
-            puts "${uuid}"
+        uuid="$(notarize "${bundle_id}" "${path}")" || exit
+        if [ -z "${NOTARIZATION_WAIT}" ]; then
+            printf "Notarization request UUID: " >&2
+            printf "%s\n" "${uuid}"
             exit
         fi
-        wait_for_notarization "${uuid}"
-        validate "${uuid}"
-        if [ -n "${params[staple]}" ]; then
-            staple "${path}"
+        debug "wait for notarization completion requested"
+        wait_for_notarization "${uuid}" || exit
+        debug "validating notarization was successful"
+        validate "${uuid}" || exit
+        if [ -n "${NOTARIZATION_STAPLE}" ]; then
+            debug "staple of notarization requested"
+            staple "${path}" || exit
         fi
         ;;
     info)
+        debug "running info command"
         uuid="${2}"
         key="${3}"
-        output="$(info "${uuid}")"
+        output="$(info "${uuid}")" || exit
         if [ -z "${key}" ]; then
             puts "${output}"
         else
@@ -275,23 +360,28 @@ case "${command}" in
         fi
         ;;
     staple)
+        debug "running path command"
         path="${2}"
-        staple "${path}"
+        staple "${path}" || exit
         ;;
     wait)
+        debug "running wait command"
         uuid="${2}"
-        wait_for_notarization "${uuid}"
-        validate "${uuid}"
+        wait_for_notarization "${uuid}" || exit
+        validate "${uuid}" || exit
         ;;
     log)
+        debug "running log command"
         uuid="${2}"
-        output=$(info "${uuid}")
+        output=$(info "${uuid}") || exit
         show_log "${output}"
         ;;
     validate)
+        debug "running validate command"
         uuid="${2}"
-        validate "${uuid}"
+        validate "${uuid}" || exit
         ;;
     *)
+        debug "running help command"
         print_help
 esac
