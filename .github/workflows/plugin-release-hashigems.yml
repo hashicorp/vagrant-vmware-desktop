@@ -1,0 +1,63 @@
+on:
+  push:
+    branches:
+      - publish-hashigems
+
+jobs:
+  release:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    name: Vagrant VMware Desktop Plugin Release
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
+    permissions:
+      id-token: write
+      contents: write
+      packages: write
+    steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder rubygems_api_key;
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Setup Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: Set Publish Information
+        id: info
+        run: ./.ci/plugin-release-info
+      - name: Fetch Release RubyGem
+        id: fetch
+        run: ./.ci/download-release-plugin "${PLUGIN_VERSION}"
+        env:
+          PLUGIN_VERSION: steps.info.outputs.plugin-version
+      - name: Publish RubyGems.org
+        if: steps.info.outputs.publish-rubygems == 'true'
+        run: ./.ci/release-rubygems "${PLUGIN_PATH}"
+        env:
+          PLUGIN_PATH: steps.fetch.outputs.plugin_path
+          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+      - name: Doormat Configuration
+        if: steps.info.outputs.publish-hashigems == 'true'
+        uses: hashicorp/doormat-action@v1
+        with:
+          aws-role-arn: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
+      - name: Configure AWS
+        if: steps.info.outputs.publish-hashigems == 'true'
+        run: aws sts get-caller-identity
+      - name: Release Vagrant VMware Desktop Plugin
+        if: steps.info.outputs.publish-hashigems == 'true'
+        run: ./.ci/release-hashigems "${PLUGIN_PATH}"
+        env:
+          PLUGIN_PATH: steps.fetch.outputs.plugin_path
+          HASHIGEMS_METADATA_BUCKET: ${{ secrets.HASHIGEMS_METADATA_BUCKET }}
+          HASHIGEMS_PUBLIC_BUCKET: ${{ secrets.HASHIGEMS_PUBLIC_BUCKET }}
+          HASHIGEMS_CLOUDFRONT_ID: ${{ secrets.HASHIGEMS_DISTRIBUTION_ID }}

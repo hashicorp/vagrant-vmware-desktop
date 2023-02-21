@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+version="$(<./versions/desktop.txt)"
+
+# Locate our gemspec file
+specs=( "./vagrant-vmware-desktop*.gemspec" )
+gemspec_file="${specs[0]}"
+
+if [ ! -f "${gemspec_file}" ]; then
+    failure "Could not find gemspec in project directory"
+fi
+
+debug "using gemspec at %s to build plugin gem" "${gemspec_file}"
+
+gem build "${gemspec_file}" ||
+    failure "Failed to build plugin gem"
+
+gems=( "./vagrant-vmware-desktop*.gem" )
+gem_path="${gems[0]}"
+
+if [ ! -f "${gem_path}" ]; then
+    failure "Could not find plugin gem in project directory after build"
+fi
+
+debug "using gem file at %s" "${gem_path}"
+
+printf "gem-path=%s\n" "${gem_path}" >> "${GITHUB_OUTPUT}"
+printf "version=%s\n" "${version}" >> "${GITHUB_OUTPUT}"
