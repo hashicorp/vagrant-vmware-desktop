@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+version="$(<./versions/desktop.txt)"
+
+# Check if we are a valid version to release
+valid_release_version "${version}" ||
+    failure "Invalid version format for vagrant-vmware-desktop release: ${version}"
+
+if ! is_version_on_rubygems "vagrant-vmware-desktop" "${version}"; then
+    publish_rubygems=1
+fi
+
+if ! is_version_on_hashigems "vagrant-vmware-desktop" "${version}"; then
+    publish_hashigems=1
+fi
+
+printf "plugin-version=%s\n" "${version}" >> "${GITHUB_OUTPUT}"
+if [ -n "${publish_rubygems}" ]; then
+    printf "publish-rubygems=true\n" >> "${GITHUB_OUTPUT}"
+fi
+if [ -n "${publish_hashigems}" ]; then
+    printf "publish-hashigems=true\n" >> "${GITHUB_OUTPUT}"
+fi

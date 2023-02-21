@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'build-*'
+#      - 'build-*'
 
 jobs:
   sync-vagrant-vmware-desktop:

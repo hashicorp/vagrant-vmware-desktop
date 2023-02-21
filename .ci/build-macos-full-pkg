@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+
+core_pkg="${1?"Path to core package required"}"
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+# Path where utility binary should be found
+bin="${root}/bin/vagrant-vmware-utility_darwin_universal"
+
+# Run sanity checks
+if [ ! -f "${bin}" ]; then
+    fail "Utility binary is not found at expected path (${bin})"
+fi
+
+if [ ! -f "${core_pkg}" ]; then
+    fail "Core package is not found at provided path (${core_pkg})"
+fi
+
+if [ -z "${UTILITY_VERSION}" ]; then
+    fail "Utility version is not provided in expected environment variable (UTILITY_VERSION)"
+fi
+
+# Create the final storage directory
+mkdir -p "${root}/pkg-tmp" || fail "Could not create ./pkg-tmp directory"
+# Create a staging directory to work in
+stage="$(mktemp -d)" || fail "Could not create staging directory"
+# Create an installer resources directory
+resources="$(mktemp -d)" || fail "Could not create resources directory"
+# Create an installer contents directory
+contents="$(mktemp -d)" || fail "Could not create contents directory"
+
+# Setup the staging directory for packaging
+mkdir -p "${stage}/opt/vagrant-vmware-desktop/bin"
+cp -f "${bin}" "${stage}/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" ||
+    fail "Could not add utility binary to staging directory"
+chmod -R 0755 "${stage}/opt/vagrant-vmware-desktop" ||
+    fail "Could not modify permissions on staging directory"
+
+mkdir -p "${stage}/opt/vagrant-vmware-desktop/config" ||
+    fail "Could not create configuration directory within staging"
+
+# Add in our resource files for the installer
+cp "${root}/package/macos/background.png" "${resources}/background.png" ||
+    fail "Could not add installer background image"
+cp "${root}/package/macos/welcome.html" "${resources}/welcome.html" ||
+    fail "Could not add installer welcome page"
+cp "${root}/package/macos/license.html" "${resources}/license.html" ||
+    fail "Could not add installer license page"
+
+# Add core package to the installer contents
+cp -f "${core_pkg}" "${contents}/core.pkg"
+# Add our dist file for the installer
+cat <<EOF >"${contents}/vagrant-vmware-utility.dist"
+<installer-gui-script minSpecVersion="1">
+    <title>Vagrant VMware Utility</title>
+
+    <!-- Configure the visuals and the various pages that exist throughout
+         the installation process. -->
+    <background file="background.png"
+        alignment="bottomleft"
+        mime-type="image/png" />
+    <welcome file="welcome.html"
+        mime-type="text/html" />
+    <license file="license.html"
+        mime-type="text/html" />
+
+    <!-- Don't let the user customize the install (i.e. choose what
+         components to install. -->
+    <options customize="never" />
+
+    <!-- The "choices" for things that can be installed, although the
+         user has no actually choice, they're still required so that
+         the installer knows what to install. -->
+    <choice description="Vagrant VMware Utility"
+        id="choice-vagrant-vmware-utility"
+        title="Vagrant VMware Utility">
+        <pkg-ref id="com.vagrant.vagrant-vmware-utility">core.pkg</pkg-ref>
+    </choice>
+
+    <choices-outline>
+        <line choice="choice-vagrant-vmware-utility" />
+    </choices-outline>
+</installer-gui-script>
+EOF
+
+productbuild \
+    --distribution "${contents}/vagrant-vmware-utility.dist" \
+    --resources "${resources}" \
+    --package-path "${contents}" \
+    "${root}/pkg-tmp/full.pkg" ||
+    fail "Failed to build full installer package"
+
+printf "full-path=%s\n" "${root}/pkg-tmp/full.pkg" >> "${GITHUB_OUTPUT}"

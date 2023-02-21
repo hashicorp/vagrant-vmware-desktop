@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+release_version="${1}"
+if [ -z "${release_version}" ]; then
+    failure "Release version is required for downloading released plugin gem"
+fi
+
+tmpdir="$(mktemp -d -p ./)" ||
+    failure "Failed to create temporary directory for plugin gem download"
+
+pushd "${tmpdir}"
+github_release_assets "${repo_name}" "${release_version}" ".gem"
+popd
+
+gem=( "${tmpdir}/"* )
+gem="${gem[0]}"
+
+if [ ! -f "${gem}" ]; then
+    failure "Expected plugin gem download was not found"
+fi
+
+
+printf "plugin-path=%s\n" "${gem}" >> "${GITHUB_OUTPUT}"

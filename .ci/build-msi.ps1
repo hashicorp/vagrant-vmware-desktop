@@ -15,52 +15,58 @@
 #>
 
 param(
-    [string]$SignKey="",
-    [string]$SignKeyPassword="",
-    [string]$SignPath=""
+    [Parameter(Mandatory=$true)]
+    [string]$UtilityPath,
+    [Parameter(Mandatory=$true)]
+    [string]$UtilityVersion
 )
-
 
 # Exit if there are any exceptions
 $ErrorActionPreference = "Stop"
 
 # Put this in a variable to make things easy later
+# NOTE: This needs to remain a consistent value (don't change it) so
+# upgrades will work properly
 $UpgradeCode = "e43b0f5f-e2fe-430a-9ac9-969860928b4a"
+
+$version = $UtilityVersion
 
 # Get the directory to this script
 $Dir = Split-Path $script:MyInvocation.MyCommand.Path
+
+# Add wix to path
+$env:Path += ";C:\Program Files (x86)\WiX Toolset v3.11\bin"
 
 # Lookup the WiX binaries, these will error if they're not on the Path
 $WixHeat   = Get-Command heat | Select-Object -ExpandProperty Definition
 $WixCandle = Get-Command candle | Select-Object -ExpandProperty Definition
 $WixLight  = Get-Command light | Select-Object -ExpandProperty Definition
 
-Write-Host "==> Setting up for msi build..."
+Write-Host "==> Setting up for msi build for utility package (${version})..."
 
-$package = $Dir
-$root = Resolve-Path -Path "${package}\.."
+# Setup all the paths we need
+$root = Resolve-Path -Path "${Dir}\.."
+$package = "${root}\package"
 $base = "${root}\pkg"
-$binaries = "${base}\binaries"
+$asset = "${base}\vagrant-vmware-utility_${version}_windows_amd64.msi"
+
+# Create any directories we need
+[System.IO.Directory]::CreateDirectory("${stage}\pkg") | Out-Null
 $stage = [System.IO.Path]::GetTempPath()
 $stage = [System.IO.Path]::Combine($stage, [System.IO.Path]::GetRandomFileName())
 [System.IO.Directory]::CreateDirectory("${stage}\bin") | Out-Null
-$utility_path = "${binaries}\vagrant-vmware-utility_windows_amd64.exe"
-
-Write-Host "==> Installing vagrant-vmware-utility..."
-
-Copy-Item "${utility_path}" -Destination "${stage}\bin\vagrant-vmware-utility.exe"
-
-$version = (cmd /c "${stage}\bin\vagrant-vmware-utility.exe --version" 2`>`&1)
-
-Write-Host "==> Detecting utility version... ${version}!"
-
-$asset = "${base}\vagrant-vmware-utility_${version}_windows_amd64.msi"
-
 $InstallerTmpDir = [System.IO.Path]::GetTempPath()
 $InstallerTmpDir = [System.IO.Path]::Combine(
     $InstallerTmpDir, [System.IO.Path]::GetRandomFileName())
 [System.IO.Directory]::CreateDirectory($InstallerTmpDir) | Out-Null
 [System.IO.Directory]::CreateDirectory("${InstallerTmpDir}\assets") | Out-Null
+
+Write-Host "==> Installing vagrant-vmware-utility..."
+
+# Copy our executable into the staging area
+Copy-Item "${UtilityPath}" -Destination "${stage}\bin\vagrant-vmware-utility.exe"
+
+# Copy in the installer assets
 
 Copy-Item "${package}\msi\bg_banner.bmp" `
     -Destination "${InstallerTmpDir}\assets\bg_banner.bmp"
@@ -75,6 +81,7 @@ Copy-Item "${package}\msi\vagrant.ico" `
 Copy-Item "${package}\msi\vagrant-vmware-utility-en-us.wxl" `
     -Destination "${InstallerTmpDir}\vagrant-vmware-utility-en-us.wxl"
 
+# Write our known variables for wix configuration
 $contents = @"
 <?xml version="1.0" encoding="utf-8"?>
 <Include>
@@ -92,6 +99,7 @@ $contents | Out-File `
     -Encoding ASCII `
     -FilePath "${InstallerTmpDir}\vagrant-config.wxi"
 
+# Write our wix configuration file
 $contents = @"
 <?xml version="1.0"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
@@ -184,9 +192,9 @@ $contents = @"
        <UIRef Id="WixUI_InstallDir" />
      </UI>
 
-     <WixVariable Id="WixUILicenseRtf" Value="$($InstallerTmpDir)\assets\license.rtf" />
-     <WixVariable Id="WixUIDialogBmp" Value="$($InstallerTmpDir)\assets\bg_dialog.bmp" />
-     <WixVariable Id="WixUIBannerBmp" Value="$($InstallerTmpDir)\assets\bg_banner.bmp" />
+     <WixVariable Id="WixUILicenseRtf" Value="${InstallerTmpDir}\assets\license.rtf" />
+     <WixVariable Id="WixUIDialogBmp" Value="${InstallerTmpDir}\assets\bg_dialog.bmp" />
+     <WixVariable Id="WixUIBannerBmp" Value="${InstallerTmpDir}\assets\bg_banner.bmp" />
      <!-- Install the Utility Windows service -->
      <CustomAction Id="UtilityCertificateInstall"
                    FileKey="filAD403B2949D17CD1DA10C7CA66DB5D96"
@@ -233,11 +241,12 @@ Write-Host "Running heat.exe"
     -out "${InstallerTmpDir}\vagrant-files.wxs"
 
 if(!$?) {
-    Write-Host "Error: Failed running heat.exe"
+    Write-Error "Failed running heat.exe"
     exit 1
 }
 
 Write-Host "Running candle.exe"
+
 $CandleArgs = @(
     "-nologo",
     "-arch x64",
@@ -247,70 +256,34 @@ $CandleArgs = @(
     "${InstallerTmpDir}\vagrant-files.wxs",
     "${InstallerTmpDir}\vagrant-main.wxs"
 )
-Start-Process -NoNewWindow -Wait `
+$CandleProcess = Start-Process -NoNewWindow -Wait -PassThru `
     -ArgumentList $CandleArgs -FilePath $WixCandle
 
-if(!$?) {
-    Write-Host "Error: Failed running candle.exe"
+if($CandleProcess.ExitCode -ne 0) {
+    Write-Error "Failed running candle.exe"
     exit 1
 }
 
 Write-Host "Running light.exe"
-& $WixLight `
-    -nologo `
-    -ext WixUIExtension `
-    -ext WixUtilExtension `
-    -spdb `
-    -v `
-    -cultures:en-us `
-    -loc "${InstallerTmpDir}\vagrant-vmware-utility-en-us.wxl" `
-    -out $asset `
-    "${InstallerTmpDir}\vagrant-files.wixobj" `
+
+$LightArgs = @(
+    "-nologo",
+    "-ext WixUIExtension",
+    "-ext WixUtilExtension",
+    "-spdb",
+    "-v",
+    "-cultures:en-us",
+    "-loc ${InstallerTmpDir}\vagrant-vmware-utility-en-us.wxl",
+    "-out $asset",
+    "${InstallerTmpDir}\vagrant-files.wixobj",
     "${InstallerTmpDir}\vagrant-main.wixobj"
+)
 
-if(!$?) {
-    Write-Host "Error: Failed running light.exe"
+$LightProc = Start-Process -NoNewWindow -Wait -PassThru -ArgumentList $LightArgs -FilePath $WixLight
+
+if ($LightProc.ExitCode -ne 0) {
+    Write-Error "Failed running light.exe"
     exit 1
-}
-
-#--------------------------------------------------------------------
-# Sign
-#--------------------------------------------------------------------
-if ("${SignKey}" -ne "") {
-    $SignKeyExists = Test-Path -LiteralPath $SignKey
-}
-
-if ($SignKeyExists -and "${SignKeyPassword}" -ne "") {
-    Write-Host "==> Signing installer package asset..."
-    $SignTool = "signtool.exe"
-    if ($SignPath) {
-        $SignTool = $SignPath
-    }
-
-    Write-Host "!!> Path used for signtool... (${SignTool})"
-    Write-Host "!!> Applying signature..."
-
-    & $SignTool sign `
-      /d "Vagrant VMware Utility" `
-      /t http://timestamp.digicert.com `
-      /f "${SignKey}" `
-      /p "${SignKeyPassword}" `
-      "${asset}"
-
-    if(!$?) {
-        Write-Host "Error: Failed signing installer package"
-        exit 1
-    }
-
-    Write-Host "  **> Installer package asset is signed <** "
-} else {
-    Write-Host ""
-    Write-Host "!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!"
-    Write-Host "! Vagrant VMware Utility installer !"
-    Write-Host "! package is NOT signed. Rebuild   !"
-    Write-Host "! with signing key for release     !"
-    Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    Write-Host ""
 }
 
 Write-Host "==> Cleaning up packaging artifacts..."

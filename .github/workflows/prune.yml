@@ -1,0 +1,20 @@
+on:
+  schedule:
+    - cron: '12 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  prune-drafts:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builders'
+    name: Prune stale draft releases
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Prune any drafts older than 20 days
+        run: . ./.ci/load-ci.sh && github_draft_release_prune "20"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
