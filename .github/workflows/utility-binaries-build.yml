@@ -2,6 +2,8 @@ on:
   push:
     branches:
       - 'build-utility-*'
+  schedule:
+    - cron: '15 1 * * *'
 
 jobs:
   build-utilities:
