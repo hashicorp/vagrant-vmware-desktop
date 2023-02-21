@@ -170,6 +170,29 @@ module HashiCorp
           end
         end
 
+        # Product type value used by vmrun based on platform and license
+        #
+        # @return [String] fusion, ws, or player
+        def product_type
+          return @product_type if @product_type
+
+          # If the license is standard, the type is player
+          if standard?
+            return @product_type = "player"
+          end
+
+          case @product_name.downcase
+          when "workstation"
+            @product_type = "ws"
+          when "fusion"
+            @product_type = "fusion"
+          else
+            @product_type = "player"
+          end
+
+          @product_type
+        end
+
         # @return [Boolean] using standard license
         def standard?
           !professional?
@@ -913,7 +936,7 @@ module HashiCorp
 
         # This is called to do any message suppression if we need to.
         def suppress_messages
-          if PRODUCT_NAME == "fusion"
+          if self.class.const_get(:PRODUCT_NAME) == "fusion"
             contents = <<-DATA
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -1231,7 +1254,8 @@ module HashiCorp
         # This executes the "vmrun" command with the given arguments.
         def vmrun(*command)
           begin
-            vmexec(@vmrun_path, *command)
+            cmd = ["-T", product_type] + command
+            vmexec(@vmrun_path, *cmd)
           rescue Errors::VMExecError => e
             raise Errors::VMRunError,
               :command => e.extra_data[:command],
