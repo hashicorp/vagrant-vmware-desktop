@@ -22,7 +22,7 @@ module HashiCorp
         DEFAULT_NAT_DEVICE = "vmnet8".freeze
 
         # Default NIC device when setting up network
-        DEFAULT_NIC_DEVICE="e1000".freeze
+        DEFAULT_NIC_DEVICE="e1000e".freeze
 
         # Number of bytes in disk sector
         SECTOR_TO_BYTES = 512.freeze
