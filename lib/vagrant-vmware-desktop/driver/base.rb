@@ -18,6 +18,9 @@ module HashiCorp
       # some shared common helpers.
       class Base
 
+        SOURCE_VMXPATH_FILE_NAME = "source-vmx"
+        SOURCE_SNAPSHOT_FILE_NAME = "source-snapshot"
+
         # Default NAT device when detection is unavailable
         DEFAULT_NAT_DEVICE = "vmnet8".freeze
 
@@ -339,14 +342,24 @@ module HashiCorp
             linked = false
           end
 
+          # Sanity test
+          if !destination.directory?
+            raise Errors::CloneFolderNotFolder, path: destination.to_s
+          end
+
           if linked
             @logger.info("Cloning machine using VMware linked clones.")
             # The filename of the resulting VMX
             destination_vmx = destination.join(source_vmx.basename)
 
             begin
+              snap_name = destination.basename
+              vmrun("snapshot", host_path(source_vmx), snap_name)
               # Do a linked clone!
-              vmrun("clone", host_path(source_vmx), host_path(destination_vmx), "linked")
+              vmrun("clone", host_path(source_vmx), host_path(destination_vmx), "linked", "-snapshot=#{snap_name}")
+              # store the snapshot name
+              File.write(destination.join(SOURCE_SNAPSHOT_FILE_NAME).to_s, snap_name)
+              File.write(destination.join(SOURCE_VMXPATH_FILE_NAME).to_s, source_vmx.to_s)
               # Common cleanup
             rescue Errors::VMRunError => e
               # Check if this version of VMware doesn't support linked clones
@@ -363,10 +376,6 @@ module HashiCorp
 
           if !destination_vmx
             @logger.info("Cloning machine using direct copy.")
-            # Sanity test
-            if !destination.directory?
-              raise Errors::CloneFolderNotFolder, path: destination.to_s
-            end
 
             # Just copy over the files within the folder of the source
             @logger.info("Cloning VM to #{destination}")
@@ -433,6 +442,21 @@ module HashiCorp
         def delete
           @logger.info("Deleting VM: #{@vm_dir}")
           begin
+            snap_file = @vmx_path.parent.join(SOURCE_SNAPSHOT_FILE_NAME)
+            source_vmx_file = @vmx_path.parent.join(SOURCE_VMXPATH_FILE_NAME)
+            if snap_file.exist? && source_vmx_file.exist?
+              source_vmx = File.read(source_vmx_file.to_s)
+              snap_name = File.read(snap_file.to_s)
+              @logger.info("source snapshot name found, deleting snapshot (#{snap_name})")
+              begin
+                vmrun("deleteSnapshot", source_vmx, snap_name, "andDeleteChildren")
+              rescue Errors::VMRunError => err
+                # If we failed to remove the source snapshot, just log it and move on
+                @logger.warn("failed to remove source clone snapshot '#{snap_name}': #{err}")
+              end
+            else
+              @logger.debug("source snapshot information not found, ignoring")
+            end
             @vm_dir.rmtree
           rescue Errno::ENOTEMPTY
             FileUtils.rm_rf(@vm_dir.to_s)
