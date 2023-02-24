@@ -1,5 +1,7 @@
 ## 3.0.2 (UNRELEASED)
 
+- Specify product type to `vmrun` [[GH-59]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/59)
+
 ## 3.0.1 (September 28, 2021)
 
 - Fix bug with outputting a snapshot tree [[GH-8]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/8)
