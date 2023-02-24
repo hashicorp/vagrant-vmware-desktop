@@ -2,6 +2,7 @@
 
 - Specify product type to `vmrun` [[GH-59]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/59)
 - Update default NIC device [[GH-60]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/60)
+- Create named snapshot on linked clone, delete on destroy [[GH-61]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/61) 
 
 ## 3.0.1 (September 28, 2021)
 
