@@ -1,26 +1,30 @@
 require "pathname"
+require "tmpdir"
 require "vagrant-vmware-desktop"
 
 describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
   before do
-    @vmx_file = Tempfile.new('vagrant-vmware-test')
-    @vmx_file.print(vmx_contents)
-    @vmx_file.close
+    @vmx_dir = Pathname.new(Dir.mktmpdir("vagrant-vmware-test"))
+    @vmx_file = @vmx_dir.join("testing.vmx")
+    File.write(@vmx_file, vmx_contents)
   end
-  after{ FileUtils.rm(@vmx_file) }
+  after{ FileUtils.rm_rf(@vmx_dir.to_s) }
 
+  let(:vmx_dir) { @vmx_dir }
   let(:vmx_file){ @vmx_file }
   let(:vmx_contents){ "" }
   let(:provider_config){ double("provider_config", utility_host: "127.0.0.1",
     utility_port: 9922, utility_certificate_path: '/dev/null', nat_device: "vmnet8",
     force_vmware_license: nil) }
-  let(:instance) { described_class.new(vmx_file.path, provider_config) }
+  let(:instance) { described_class.new(vmx_file.to_s, provider_config) }
   let(:utility_response){ HashiCorp::VagrantVMwareDesktop::Helper::VagrantUtility::Response }
   let(:utility_version) { "1.0" }
   let(:vagrant_utility){ double("vagrant_utility") }
 
   # Stub initial API requests
   before do
+    allow(Pathname).to receive(:new).and_call_original
+    expect(Pathname).to receive(:new).with(vmx_file.to_s).and_return(vmx_file)
     allow_any_instance_of(described_class).to receive(:vagrant_utility).and_return(vagrant_utility)
     allow(HashiCorp::VagrantVMwareDesktop::Helper::VagrantUtility).to receive(:new).and_return(vagrant_utility)
     allow(vagrant_utility).to receive(:get).with("/vmware/info").and_return(utility_response.new(success: true))
@@ -98,6 +102,163 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
     end
   end
 
+  describe "#clone" do
+    let(:source_vmx) do
+      double("source_vmx", basename: source_vmx_basename, parent: source_vmx_parent, to_s: "/dev/null/source_vmx")
+    end
+    let(:source_vmx_basename) { "SOURCE_VMX_BASENAME" }
+    let(:source_vmx_parent) { double("source_vmx_parent", children: source_vmx_parent_children) }
+    let(:source_vmx_parent_children) { [] }
+
+    let(:destination) {
+      double("destination", "directory?": destination_is_directory, basename: destination_basename, to_s: "/dev/null/destination")
+    }
+    let(:destination_basename) { "DESTINATION_BASENAME" }
+    let(:destination_is_directory) { true }
+    let(:destination_vmx) { double("destination_vmx", to_s: "/dev/null/destinatin/destination_vmx") }
+    let(:linked) { false }
+
+    before do
+      allow(instance).to receive(:clone_cleanup)
+      allow(destination).to receive(:join) { |value| value }
+      allow(source_vmx).to receive(:join) { |value| value }
+      allow(destination).to receive(:join).with(source_vmx_basename).and_return(destination_vmx)
+    end
+
+    it "returns path to new vmx file" do
+      expect(instance.clone(source_vmx, destination)).to eq(destination_vmx)
+    end
+
+    it "performs cleanup on destination" do
+      expect(instance).to receive(:clone_cleanup).with(destination_vmx)
+
+      instance.clone(source_vmx, destination)
+    end
+
+    context "when destination is not a directory" do
+      let(:destination_is_directory) { false }
+
+      it "should raise an error" do
+        expect { instance.clone(source_vmx, destination) }.
+          to raise_error(HashiCorp::VagrantVMwareDesktop::Errors::CloneFolderNotFolder)
+      end
+    end
+
+    context "full clone" do
+      let(:source_vmx_parent_children) { [source_child1, source_child2] }
+      let(:source_child1) { double("source_child1", to_s: "source_child1", basename: "file") }
+      let(:source_child2) { double("source_child2", to_s: "source_child2", basename: "file") }
+
+      it "should copy the source files to the destination" do
+        expect(FileUtils).to receive(:cp_r).with(source_child1.to_s, destination.to_s)
+        expect(FileUtils).to receive(:cp_r).with(source_child2.to_s, destination.to_s)
+
+        instance.clone(source_vmx, destination)
+      end
+    end
+
+    context "linked clone" do
+      before do
+        allow(instance).to receive(:vmrun)
+        allow(File).to receive(:write)
+        allow(instance).to receive(:host_path) { |value| value }
+      end
+
+      it "should create a snapshot" do
+        expect(instance).to receive(:vmrun).with("snapshot", source_vmx, destination_basename)
+
+        instance.clone(source_vmx, destination, true)
+      end
+
+      it "should create clone using snapshot" do
+        expect(instance).to receive(:vmrun).with("clone", source_vmx, destination_vmx, "linked", "-snapshot=#{destination_basename}")
+
+        instance.clone(source_vmx, destination, true)
+      end
+
+      it "should store the snapshot name" do
+        snapfile = double("snapfile", to_s: "snapfile")
+        expect(destination).to receive(:join).
+          with(HashiCorp::VagrantVMwareDesktop::Driver::Base::SOURCE_SNAPSHOT_FILE_NAME).
+          and_return(snapfile)
+        expect(File).to receive(:write).with("snapfile", destination_basename)
+
+        instance.clone(source_vmx, destination, true)
+      end
+
+      it "should store the source vmx name" do
+        vmxfile = double("vmxfile", to_s: "vmxfile")
+        expect(destination).to receive(:join).
+          with(HashiCorp::VagrantVMwareDesktop::Driver::Base::SOURCE_VMXPATH_FILE_NAME).
+          and_return(vmxfile)
+        expect(File).to receive(:write).with("vmxfile", source_vmx.to_s)
+
+        instance.clone(source_vmx, destination, true)
+      end
+    end
+  end
+
+  describe "#delete" do
+    before do
+      allow(vmx_file).to receive(:parent).and_return(vmx_dir)
+      allow(instance).to receive(:vmrun)
+      allow(FileUtils).to receive(:rm_rf)
+    end
+
+    it "should remove the vm directory" do
+      expect(vmx_dir).to receive(:rmtree)
+      instance.delete
+    end
+
+    it "should forcibly remove directory if error not empty" do
+      FileUtils.touch(vmx_dir.join("test-file"))
+      expect(FileUtils).to receive(:rm_rf).with(vmx_dir.to_s)
+      instance.delete
+    end
+
+    context "when snapshot file exists" do
+      let(:snapshot_name) { "TEST_SNAPSHOT" }
+
+      before do
+        File.write(
+          vmx_dir.join(
+            HashiCorp::VagrantVMwareDesktop::Driver::Base::SOURCE_SNAPSHOT_FILE_NAME,
+          ).to_s,
+          snapshot_name,
+        )
+      end
+
+      it "does not delete snapshot because source vmx is missing" do
+        expect(instance).not_to receive(:vmrun)
+        instance.delete
+      end
+
+      context "when source vmx file exists" do
+        let(:source_vmx_path) { "TEST_SOURCE_VMX_PATH" }
+
+        before do
+        File.write(
+          vmx_dir.join(
+            HashiCorp::VagrantVMwareDesktop::Driver::Base::SOURCE_VMXPATH_FILE_NAME,
+          ).to_s,
+          source_vmx_path,
+        )
+        end
+
+        it "should delete the snapshot" do
+          expect(instance).to receive(:vmrun).with("deleteSnapshot", source_vmx_path, snapshot_name, anything)
+          instance.delete
+        end
+
+        it "should not error if snapshot cannot be deleted" do
+          expect(instance).to receive(:vmrun).and_raise(HashiCorp::VagrantVMwareDesktop::Errors::VMRunError)
+
+          instance.delete
+        end
+      end
+    end
+  end
+
   describe "#detect_nat_device!" do
     let(:vmnet_devices) { [] }
 
@@ -160,7 +321,7 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
     let(:vmrun_result){ double(stdout: guest_ip) }
     context "with vmrun ip lookup enabled" do
       before do
-        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.path).and_return(vmrun_result)
+        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.to_s).and_return(vmrun_result)
       end
 
       it "should return guest IP via vmrun command" do
@@ -207,7 +368,7 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
 
       before do
         expect(instance).to receive(:read_dhcp_lease).with("vmnet8", mac).and_return(guest_ip)
-        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.path).and_return(vmrun_result)
+        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.to_s).and_return(vmrun_result)
       end
 
       it "should discard vmrun IP result and perform DHCP lookup" do
@@ -816,7 +977,7 @@ Snapshot
 \t\tSnapshot 3
 """) }
         before do
-          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.path, "showTree").and_return(vmrun_result)
+          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.to_s, "showTree").and_return(vmrun_result)
         end
 
         it "builds a snapshot tree" do
@@ -839,7 +1000,7 @@ Snapshot
 \t\t\t\tSnapshot 10
 \tSnapshot 9""") }
         before do
-          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.path, "showTree").and_return(vmrun_result)
+          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.to_s, "showTree").and_return(vmrun_result)
         end
 
         it "builds a snapshot tree" do
