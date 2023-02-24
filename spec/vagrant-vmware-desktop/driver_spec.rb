@@ -30,11 +30,72 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
         success: true,
         content: {
           vmrun: "VMRUN_PATH",
-          vmx: "VMX_PATH"
+          vmx: "VMX_PATH",
         }
       )
     )
     allow_any_instance_of(HashiCorp::VagrantVMwareDesktop::Errors::Base).to receive(:translate_error)
+  end
+
+  describe "#product_type" do
+    let(:info_response) do
+      utility_response.new(info_response_hash)
+    end
+
+    let(:info_response_hash) do
+      {
+        success: true,
+        content: {
+          license: license,
+          product: product,
+          version: "1.0",
+        }
+      }
+    end
+
+    before do
+      expect(vagrant_utility).to receive(:get).with("/vmware/info").and_return(info_response)
+    end
+
+    context "when product name is fusion" do
+      let(:product) { "Fusion" }
+
+      context "when license is standard" do
+        let(:license) { "vl" }
+
+        it "should return the type as 'player'" do
+          expect(instance.product_type).to eq("player")
+        end
+      end
+
+      context "when license is professional" do
+        let(:license) { "pro" }
+
+        it "should return the type as 'fusion'" do
+          expect(instance.product_type).to eq("fusion")
+        end
+      end
+    end
+
+    context "when product name is workstation" do
+      let(:product) { "Workstation" }
+
+      context "when license is standard" do
+        let(:license) { "vl" }
+
+        it "should return the type as 'player'" do
+          expect(instance.product_type).to eq("player")
+        end
+      end
+
+      context "when license is professional" do
+        let(:license) { "workstation" }
+
+        it "should return the type as 'ws'" do
+          expect(instance.product_type).to eq("ws")
+        end
+      end
+    end
   end
 
   describe "#detect_nat_device!" do
@@ -562,7 +623,7 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
 
     context "when license values are set" do
       let(:license) { "value" }
-      let(:content) { {license: license} }
+      let(:content) { {license: license, version: "1.0"} }
 
       it "should result in standard license with unknown value" do
         allow(instance).to receive_message_chain(:vagrant_utility, :get).and_return(response)
