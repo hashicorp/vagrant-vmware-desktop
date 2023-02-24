@@ -21,6 +21,10 @@ module HashiCorp
         # Default NAT device when detection is unavailable
         DEFAULT_NAT_DEVICE = "vmnet8".freeze
 
+        # Default NIC device when setting up network
+        DEFAULT_NIC_DEVICE="e1000".freeze
+
+        # Number of bytes in disk sector
         SECTOR_TO_BYTES = 512.freeze
 
         # Vagrant utility version requirement which must be satisfied to properly
@@ -815,7 +819,7 @@ module HashiCorp
 
               vmx["#{key}.present"] = "TRUE"
               vmx["#{key}.connectiontype"] = adapter[:type].to_s
-              vmx["#{key}.virtualdev"] = "e1000"
+              vmx["#{key}.virtualdev"] = DEFAULT_NIC_DEVICE
 
               if adapter[:mac_address]
                 vmx["#{key}.addresstype"] = "static"
