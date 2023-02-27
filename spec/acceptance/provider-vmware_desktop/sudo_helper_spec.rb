@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 shared_examples 'provider/sudo_helper' do |provider, options|
   [:box, :plugin].each do |option_key|
     if !options[:box]
