@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 require "vagrant/errors"
 require "vagrant-vmware-desktop"
 require "vagrant-vmware-desktop/guest_cap/linux/mount_vmware_shared_folder"
