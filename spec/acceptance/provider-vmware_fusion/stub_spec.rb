@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # Load all specs defined in common desktop
 desktop_dir = File.dirname(File.dirname(__FILE__))
 Dir.new(desktop_dir).each do |desktop_path|

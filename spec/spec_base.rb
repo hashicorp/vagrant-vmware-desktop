@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 require "i18n"
 require "rspec/its"
 # webmock currently fails if this require isn't here. can

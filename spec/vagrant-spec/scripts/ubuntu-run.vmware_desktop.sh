@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 set -x
 
 export VAGRANT_SPEC_BOX="${VAGRANT_SPEC_BOX}"
