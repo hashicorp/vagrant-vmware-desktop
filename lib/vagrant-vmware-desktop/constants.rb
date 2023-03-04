@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 module HashiCorp
   module VagrantVMwareDesktop
     version_text_path = File.expand_path(File.join(__dir__, "../../versions/desktop.txt"))

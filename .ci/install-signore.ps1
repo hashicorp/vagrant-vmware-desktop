@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # Download signore release artifact and unzip in the current directory
 
 # Start with getting the download URL for the latest
