@@ -39,7 +39,7 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_access_key_id;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_secret_access_key;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch linux packages
         run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
         env:

@@ -26,9 +26,9 @@ jobs:
           secrets:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder rubygems_api_key;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Setup Ruby
-        uses: actions/setup-ruby@v1
+        uses: actions/setup-ruby@v1 # TSCCR: no versions of "actions/setup-ruby" are trusted
         with:
           ruby-version: '2.7'
       - name: Set Publish Information

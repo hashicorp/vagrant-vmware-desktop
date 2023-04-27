@@ -22,9 +22,9 @@ jobs:
     name: Vagrant VMware Plugin unit tests on Ruby ${{ matrix.ruby }}
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf # v1.146.0
         with:
           ruby-version: ${{matrix.ruby}}
           bundler-cache: true

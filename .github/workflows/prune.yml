@@ -13,7 +13,7 @@ jobs:
       packages: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Prune any drafts older than 20 days
         run: . ./.ci/load-ci.sh && github_draft_release_prune "20"
         env:

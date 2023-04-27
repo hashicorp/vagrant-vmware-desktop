@@ -36,7 +36,7 @@ jobs:
       windows-cache-exists: ${{ steps.inspect.outputs.windows-cache-exists }}
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         with:
           fetch-depth: 0
       - name: Gather information
@@ -71,10 +71,10 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_binary_signer;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_windows_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Setup Go
         if: needs.info.outputs.unsigned-cache-exists != 'true'
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version-file: go.mod
       - name: Build utility binaries
@@ -125,14 +125,14 @@ jobs:
       packages: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch binaries
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload for Windows
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: windows-binary
           path: ./bin
@@ -146,14 +146,14 @@ jobs:
       packages: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch binaries
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf # v1.146.0
         with:
           ruby-version: 3.1
           bundler-cache: true
@@ -201,7 +201,7 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_binary_signer;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_installer_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch binaries
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
@@ -272,9 +272,9 @@ jobs:
       contents: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch utility binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: windows-binary
           path: ./bin
@@ -283,7 +283,7 @@ jobs:
         env:
           UTILITY_VERSION: ${{ needs.info.outputs.utility-version }}
       - name: Upload unsigned artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: windows-unsigned-msi
           path: ./pkg
@@ -313,9 +313,9 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_windows_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch MSI
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: windows-unsigned-msi
           path: ./pkg
