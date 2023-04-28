@@ -967,7 +967,7 @@ module HashiCorp
 
         # This is called to do any message suppression if we need to.
         def suppress_messages
-          if self.class.const_get(:PRODUCT_NAME) == "fusion"
+          if @product_name.downcase == "fusion"
             contents = <<-DATA
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -1264,7 +1264,7 @@ module HashiCorp
               if VagrantVMwareDesktop.wsl?
                 r_path = VagrantVMwareDesktop.windows_to_wsl_path(r_path)
               end
-              result = Vagrant::Util::Subprocess.execute(r_path, *command)
+              result = Vagrant::Util::Subprocess.execute(r_path, *command.map(&:to_s))
               if result.exit_code != 0
                 raise Errors::VMExecError,
                   :executable => executable.to_s,
