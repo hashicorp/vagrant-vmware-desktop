@@ -20,12 +20,11 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
-      - name: Get version
+      - name: Get info
         id: info
-        run: ./.ci/utility-information
-      - name: Build utilities
-        run: make all
-      - name: Publish utilities
-        run: . ./.ci/load-ci.sh && prerelease "${UTILITY_VERSION}" ./bin
+        run: ./.ci/utility-bins-information
+      - name: Build and publish utilities
+        if: ${{ steps.info.outputs.utility-bins-release-exists != 'true' }}
+        run: ./.ci/utility-binaries-prerelease "${UTILITY_VERSION}"
         env:
-          UTILITY_VERSION: ${{ steps.info.outputs.utility-version }}
+          UTILITY_VERSION: ${{ steps.info.outputs.utility-bins-version }}

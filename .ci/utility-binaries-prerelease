@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+release_name="${1}"
+if [ -z "${release_name}" ]; then
+    failure "Name is required for utility binaries release"
+fi
+
+info "Building vagrant-vmware-utility binaries..."
+
+# Build binaries
+make all ||
+    failure "Failed to build utilities"
+
+info "Publishing utility binaries prerelease..."
+
+if [ -n "${IS_NIGHTLY}" ]; then
+    body="Vagrant VMware Utility binaries nightly build"
+else
+    body="Vagrant VMware Utility binaries custom build (branch: ${ident_ref})"
+fi
+
+release_output="$(github_create_release -o "${repo_owner}" -r "${repo_name}" -n "${release_name}" -t "${release_name}" -c "${full_sha}" -b "${body}" -p -m)" ||
+    failure "Could not create GitHub prerelease"
+debug "new release created: %s" "${release_output}"
+release_id="$(printf "%s" "${release_output}" | jq -r '.id')" ||
+    failure "Could not get release ID from release creation response"
+
+# Upload release artifacts
+debug "uploading artifacts for vagrant vmware utility binaries release '%s' (ID: %d)" "${nightly_name}" "${release_id}"
+github_upload_release_artifacts "${repo_name}" "${release_id}" ./bin
