@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# This script is used for caching artifacts for later
+# reuse. It does this using a draft release (used for
+# flexibility/compatibility) to store the artifact for
+# later retrieval.
+
 csource="${BASH_SOURCE[0]}"
 while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
 root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
@@ -23,9 +28,9 @@ if [ ! -e "${source}" ]; then
     failure "source path provided for cache does not exist (${source})"
 fi
 
-if github_draft_release_exists "${repo_owner}" "${repo_name}" "${cache_name}"; then
+if github_draft_release_exists "${repo_name}" "${cache_name}"; then
     printf "Cache item already exists (name: %s repository: %s)" "${cache_name}" "${repo_owner}/${repo_name}" >&2
     exit 1
 fi
 
-github_draft_release "${repo_owner}" "${repo_name}" "${cache_name}" "${source}"
+github_draft_release "${repo_name}" "${cache_name}" "${source}"
