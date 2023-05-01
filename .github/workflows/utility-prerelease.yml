@@ -9,7 +9,6 @@ jobs:
     name: Build packages
     permissions:
       contents: write
-      packages: write
       id-token: write
     uses: ./.github/workflows/build-utility-packages.yml
     secrets: inherit
@@ -28,11 +27,11 @@ jobs:
         env:
           CACHE_ID: ${{ needs.build-packages.outputs.linux-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - name: Fetch macOS packages
-      #   run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
-      #   env:
-      #     CACHE_ID: ${{ needs.build-packages.outputs.macos-cache-id }}
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch macOS packages
+        run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
+        env:
+          CACHE_ID: ${{ needs.build-packages.outputs.macos-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch windows packages
         run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
         env:
