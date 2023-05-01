@@ -585,7 +585,6 @@ function sign_file() {
 
     local binary_identifier=""
     local entitlements=""
-    local input_file="${1}"
     local output_file=""
 
     local opt
@@ -596,8 +595,10 @@ function sign_file() {
             "o") output_file="${OPTARG}" ;;
             *) failure "Invalid flag provided" ;;
         esac
-        shift $((OPTIND-1))
     done
+    shift $((OPTIND-1))
+
+    local input_file="${1}"
 
     # Check that a good input file was given
     if [ -z "${input_file}" ]; then

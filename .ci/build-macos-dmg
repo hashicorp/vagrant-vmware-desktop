@@ -50,9 +50,9 @@ chmod +x "${dmgdir}/uninstall.tool" ||
     fail "Failed to modify permissions on uninstall tool in dmg staging directory"
 
 # Lets build our DMG
-dmgbuild -s "${root}/macos/dmgbuild.py" \
+dmgbuild -s "${root}/package/macos/dmgbuild.py" \
     -D srcfolder="${dmgdir}" \
-    -D backgroundimg="${root}/macos/background_installer.png" \
+    -D backgroundimg="${root}/package/macos/background_installer.png" \
     "Vagrant VMware Utility" \
     "${output_path}" ||
     fail "Failed to build DMG"

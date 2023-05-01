@@ -28,45 +28,45 @@ windows_id="utility-${util_id}-windows"
 # if the cache currently exists
 
 # Define the utility version
-printf "utility-version=%s\n" "${version}"
+debug "utility-version=%s" "${version}"
 printf "utility-version=%s\n" "${version}" >> "${GITHUB_OUTPUT}"
 
 # Set unsigned cache identifer and check existence
-printf "unsigned-cache-id=%s\n" "${unsigned_id}"
+debug "unsigned-cache-id=%s" "${unsigned_id}"
 printf "unsigned-cache-id=%s\n" "${unsigned_id}" >> "${GITHUB_OUTPUT}"
-if github_draft_release_exists "${repo_owner}" "${repo_name}" "${unsigned_id}"; then
-    printf "unsigned-cache-exists=true\n"
+if github_draft_release_exists "${repo_name}" "${unsigned_id}"; then
+    debug "unsigned-cache-exists=true"
     printf "unsigned-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
 fi
 
 # Set signed cache identifer and check existence
-printf "signed-cache-id=%s\n" "${signed_id}"
+debug "signed-cache-id=%s" "${signed_id}"
 printf "signed-cache-id=%s\n" "${signed_id}" >> "${GITHUB_OUTPUT}"
-if github_draft_release_exists "${repo_owner}" "${repo_name}" "${signed_id}"; then
-    printf "signed-cache-exists=true\n"
+if github_draft_release_exists "${repo_name}" "${signed_id}"; then
+    debug "signed-cache-exists=true"
     printf "signed-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
 fi
 
 # Set linux cache identifer and check existence
-printf "linux-cache-id=%s\n" "${linux_id}"
+debug "linux-cache-id=%s" "${linux_id}"
 printf "linux-cache-id=%s\n" "${linux_id}" >> "${GITHUB_OUTPUT}"
-if github_draft_release_exists "${repo_owner}" "${repo_name}" "${linux_id}"; then
-    printf "linux-cache-exists=true\n"
+if github_draft_release_exists "${repo_name}" "${linux_id}"; then
+    debug "linux-cache-exists=true"
     printf "linux-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
 fi
 
 # Set macos cache identifer and check existence
-printf "macos-cache-id=%s\n" "${macos_id}"
+debug "macos-cache-id=%s" "${macos_id}"
 printf "macos-cache-id=%s\n" "${macos_id}" >> "${GITHUB_OUTPUT}"
-if github_draft_release_exists "${repo_owner}" "${repo_name}" "${macos_id}"; then
-    printf "macos-cache-exists=true\n"
+if github_draft_release_exists "${repo_name}" "${macos_id}"; then
+    debug "macos-cache-exists=true"
     printf "macos-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
 fi
 
 # Set windows cache identifer and check existence
-printf "windows-cache-id=%s\n" "${windows_id}"
+debug "windows-cache-id=%s" "${windows_id}"
 printf "windows-cache-id=%s\n" "${windows_id}" >> "${GITHUB_OUTPUT}"
-if github_draft_release_exists "${repo_owner}" "${repo_name}" "${windows_id}"; then
-    printf "windows-cache-exists=true\n"
+if github_draft_release_exists "${repo_name}" "${windows_id}"; then
+    debug "windows-cache-exists=true"
     printf "windows-cache-exists=true\n" >> "${GITHUB_OUTPUT}"
 fi

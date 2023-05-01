@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# This script is used for fetching artifacts that
+# were previously cached. The cache store used is
+# a draft release (used for flexibility/compatibility)
+
 csource="${BASH_SOURCE[0]}"
 while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
 root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
@@ -30,4 +34,4 @@ mkdir -p "${destination}" || failure "Could not create destination directory (${
 pushd "${destination}"
 
 # Now download all the artifacts within the draft release
-github_draft_release_assets "${repo_owner}" "${repo_name}" "${cache_name}"
+github_draft_release_assets "${repo_name}" "${cache_name}"

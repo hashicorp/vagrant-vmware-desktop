@@ -1,4 +1,7 @@
 on:
+  push:
+    branches:
+      - 'build-utility-packages-*'
   workflow_call:
     outputs:
       linux-cache-id:
@@ -21,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions: # These need to be write for access to draft releases
       contents: write
-      packages: write
     outputs:
       utility-version: ${{ steps.inspect.outputs.utility-version }}
       unsigned-cache-id: ${{ steps.inspect.outputs.unsigned-cache-id }}
@@ -52,7 +54,6 @@ jobs:
     permissions:
       id-token: write
       contents: write
-      packages: write
     steps:
       - name: Authentication
         id: vault-auth
@@ -92,37 +93,32 @@ jobs:
         env:
           CACHE_ID: ${{ needs.info.outputs.unsigned-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Signore
-        run: ./.ci/install-signore
-        env:
-          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
       - name: Sign macOS binary
-        run: |
-          ./.ci/sign-file -b "vagrant-vmware-utility" \
-            "./bin/vagrant-vmware-utility_darwin_universal" \
+        run: . .ci/load-ci.sh && sign_file -b "vagrant-vmware-utility" "./bin/vagrant-vmware-utility_darwin_universal"
         env:
           SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_macos_binary_signer }}
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
       - name: Sign Windows binary
-        run: ./.ci/sign-file "./bin/vagrant-vmware-utility_darwin_universal"
+        run: . .ci/load-ci.sh && sign_file "./bin/vagrant-vmware-utility.exe"
         env:
-          SIGNORE_WINDOWS: ${{ steps.secrets.outputs.signore_windows_signer }}
+          SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_windows_signer }}
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
       - name: Cache signed binaries
         run: ./.ci/create-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   windows-binary:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true' && always()
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true' && !failure() && !cancelled()
     name: Store Windows binary
     runs-on: ubuntu-latest
     needs: [info, build]
     permissions:
       contents: write
-      packages: write
     steps:
       - name: Code Checkout
         uses: actions/checkout@v3
@@ -137,13 +133,12 @@ jobs:
           name: windows-binary
           path: ./bin
   build-linux:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.linux-cache-exists != 'true' && always()
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.linux-cache-exists != 'true' && !failure() && !cancelled()
     name: Build Linux RPM, DEB, and PACMAN packages
     runs-on: ubuntu-latest
     needs: [info, build]
     permissions:
       contents: write
-      packages: write
     steps:
       - name: Code Checkout
         uses: actions/checkout@v3
@@ -174,15 +169,45 @@ jobs:
         env:
           CACHE_ID: ${{ needs.info.outputs.linux-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  build-macos:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builde' && needs.info.outputs.macos-cache-exists != 'true' && always()
-    name: Build macOS package
-    runs-on: ['self-hosted', 'ondemand', 'os=macos', 'x86']
+  build-macos-corepkg:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Build macOS core package
+    runs-on: macos-latest
     needs: [info, build]
+    permissions:
+      contents: write
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Upgrade bash
+        run: brew install bash
+      - name: Fetch binaries
+        run: ./.ci/restore-cache "${CACHE_ID}" ./bin
+        env:
+          CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build core package
+        id: build-core
+        run: ./.ci/build-macos-core-pkg ./bin/vagrant-vmware-utility_darwin_universal
+        env:
+          UTILITY_VERSION: ${{ needs.info.outputs.utility-version }}
+      - name: Relocate for upload
+        run: mkdir ./corepkg && mv "${CORE_PKG}" ./corepkg
+        env:
+          CORE_PKG: ${{ steps.build-core.outputs.core-path }}
+      - name: Upload core package
+        uses: actions/upload-artifact@v3
+        with:
+          name: corepkg-unsigned
+          path: ./corepkg
+  sign-macos-corepkg:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Sign macOS core package
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
+    needs: [info, build-macos-corepkg]
     permissions:
       id-token: write
       contents: write
-      packages: write
     steps:
       - name: Authentication
         id: vault-auth
@@ -198,73 +223,182 @@ jobs:
             kv/data/teams/vagrant/hashibot signore_token;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_id;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
-            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_binary_signer;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_installer_signer;
       - name: Code Checkout
         uses: actions/checkout@v3
+      - name: Download unsigned core package
+        uses: actions/download-artifact@v3
+        with:
+          name: corepkg-unsigned
+          path: ./corepkg
+      - name: Sign core package
+        run: . .ci/load-ci.sh && sign_file ./corepkg/*
+        env:
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
+          SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_macos_installer_signer }}
+          SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
+          SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
+      - name: Upload signed core package
+        uses: actions/upload-artifact@v3
+        with:
+          name: corepkg-signed
+          path: ./corepkg
+  build-macos-fullpkg:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Build macOS full package
+    runs-on: macos-latest
+    needs: [info, sign-macos-corepkg]
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Upgrade bash
+        run: brew install bash
       - name: Fetch binaries
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
-      - name: Install signore
-        run: ./.ci/install-signore
-        env:
-          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
-      - name: Build core package
-        id: build-core
-        run: ./.ci/build-macos-core-pkg ./bin/vagrant-vmware-utility_darwin_universal
-        env:
-          UTILITY_VERSION: ${{ needs.info.outputs.utility-version }}
-      - name: Sign core package
-        run: ./.ci/sign-file "${PKG_PATH}"
-        env:
-          PKG_PATH: ${{ steps.build-core.outputs.core-path }}
-          SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_macos_installer_signer }}
-          SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
-          SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download signed core package
+        uses: actions/download-artifact@v3
+        with:
+          name: corepkg-signed
+          path: ./corepkg
       - name: Build full package
         id: build-full
-        run: ./.ci/build-macos-full-pkg "${CORE_PKG}"
+        run: ./.ci/build-macos-full-pkg ./corepkg/*
         env:
-          CORE_PKG: ${{ steps.build-core.outputs.core-path }}
           UTILITY_VERSION: ${{ needs.info.outputs.utility-version }}
-      - name: Sign full package
-        run: ./.ci/sign-file "${PKG_PATH}"
+      - name: Relocate for upload
+        run: mkdir ./fullpkg && mv "${FULL_PKG}" ./fullpkg
         env:
-          PKG_PATH: ${{ steps.build-full.outputs.full-path }}
+          FULL_PKG: ${{ steps.build-full.outputs.full-path }}
+      - name: Upload full package
+        uses: actions/upload-artifact@v3
+        with:
+          name: fullpkg-unsigned
+          path: ./fullpkg
+  sign-macos-fullpkg:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Sign macOS full package
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
+    needs: [info, build-macos-fullpkg]
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/teams/vagrant/hashibot signore_token;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_id;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_installer_signer;
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Download unsigned full package
+        uses: actions/download-artifact@v3
+        with:
+          name: fullpkg-unsigned
+          path: ./fullpkg
+      - name: Sign full package
+        run: . .ci/load-ci.sh && sign_file ./fullpkg/*
+        env:
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
           SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_macos_installer_signer }}
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
+      - name: Upload signed full package
+        uses: actions/upload-artifact@v3
+        with:
+          name: fullpkg-signed
+          path: ./fullpkg
+  build-macos-dmg:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Build macOS DMG
+    runs-on: macos-latest
+    needs: [info, sign-macos-fullpkg]
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Upgrade bash
+        run: brew install bash
+      - name: Download signed full package
+        uses: actions/download-artifact@v3
+        with:
+          name: fullpkg-signed
+          path: ./fullpkg
       - name: Build DMG
         id: build-dmg
-        run: ./.ci/build-macos-dmg "${FULL_PKG}"
+        run: ./.ci/build-macos-dmg ./fullpkg/*
         env:
-          FULL_PKG: ${{ steps.build-full.outputs.full-path }}
           UTILITY_VERSION: ${{ needs.info.outputs.utility-version }}
-      - name: Sign DMG
-        run: ./.ci/sign-file "${DMG_PATH}"
+      - name: Relocate for upload
+        run: mkdir ./dmg && mv "${DMG}" ./dmg
         env:
-          DMG_PATH: ${{ steps.outputs.build-dmg.dmg-path }}
+          DMG: ${{ steps.build-dmg.outputs.dmg-path }}
+      - name: Upload DMG
+        uses: actions/upload-artifact@v3
+        with:
+          name: dmg-unsigned
+          path: ./dmg
+  sign-and-notarize-macos-dmg:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Sign macOS DMG
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
+    needs: [info, build-macos-dmg]
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/teams/vagrant/hashibot signore_token;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder notarization_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_id;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_binary_signer;
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Download unsigned DMG
+        uses: actions/download-artifact@v3
+        with:
+          name: dmg-unsigned
+          path: ./dmg
+      - name: Sign DMG
+        run: . .ci/load-ci.sh && sign_file ./dmg/*
+        env:
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
           SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_macos_binary_signer }}
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
       - name: Notarize DMG
-        run: ./.ci/notarize "${BUNDLE_ID}" "${DMG_PATH}"
+        run: ./.ci/notarize-file ./dmg/*.dmg
         env:
-          BUNDLE_ID: com.vagrant.vagrant-vmware-utility
-          DMG_PATH: ${{ steps.build-dmg.outputs.dmg-path }}
-          AC_USERNAME: ${{ steps.secrets.outputs.notarization_username }}
-          AC_PASSWORD: ${{ steps.secrets.outputs.notarization_password }}
-      - name: Relocate DMG for caching
-        run: mkdir -p ./pkg && mv "${DMG_PATH}" ./pkg
-        env:
-          DMG_PATH: ${{ steps.build-dmg.outputs.dmg-path }}
-      - name: Cache packages
-        run: ./.ci/create-cache "${CACHE_ID}" ./pkg
+          NOTARIZE_KEY: ${{ steps.secrets.outputs.notarization_key }}
+      - name: Store DMG
+        run: ./.ci/create-cache "${CACHE_ID}" ./dmg
         env:
           CACHE_ID: ${{ needs.info.outputs.macos-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-windows:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true' && always()
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true'
     name: Build Windows package
     runs-on: windows-latest
     needs: [info, windows-binary]
@@ -288,14 +422,13 @@ jobs:
           name: windows-unsigned-msi
           path: ./pkg
   sign-windows:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true' && always()
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true'
     name: Sign Windows MSI
     needs: [info, build-windows]
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
     permissions:
       id-token: write
       contents: write
-      packages: write
     steps:
       - name: Authentication
         id: vault-auth
