@@ -1,12 +1,46 @@
 on:
   push:
     branches:
-      - 'build-utility-prerelease-*'
+      - 'build-pkg-*'
 
 jobs:
-  build-packages:
+  info:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    name: Generate information
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
+    permissions:
+      id-token: write
+      contents: write
+    outputs:
+      utility-version: ${{ steps.inspect.outputs.utility-version }}
+      utility-pkgs-version: ${{ steps.inspect.outputs.utility-pkgs-version }}
+      utility-pkgs-release-exists: ${{ steps.inspect.outputs.utility-pkgs-release-exists }}
+    steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
+      - name: Code Checkout
+        uses: actions/checkout@v3
+      - name: Gather information
+        id: inspect
+        run: ./.ci/utility-pkgs-information
+        env:
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.vagrant_vmware_desktop_repo_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+  build-packages:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.utility-pkgs-release-exists != 'true'
     name: Build packages
+    needs: [info]
     permissions:
       contents: write
       id-token: write
@@ -14,12 +48,24 @@ jobs:
     secrets: inherit
   prerelease:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
-    needs: [build-packages]
-    runs-on: ubuntu-latest
+    needs: [info, build-packages]
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
     permissions:
+      id-token: write
       contents: write
-      packages: write
     steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
       - name: Code Checkout
         uses: actions/checkout@v3
       - name: Fetch linux packages
@@ -38,7 +84,9 @@ jobs:
           CACHE_ID: ${{ needs.build-packages.outputs.windows-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish release
-        run: . .ci/load-ci.sh && prerelease "${UTILITY_VERSION}" "./pkg"
+        run: ./.ci/utility-packages-prerelease "${UTILITY_VERSION}" ./pkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UTILITY_VERSION: ${{ needs.build-packages.outputs.utility-version }}
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.vagrant_vmware_desktop_repo_token }}
+          UTILITY_VERSION: ${{ needs.info.outputs.utility-pkgs-version }}
+          EVENT_NAME: ${{ github.event_name }}

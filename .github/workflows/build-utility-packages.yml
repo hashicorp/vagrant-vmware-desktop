@@ -1,7 +1,4 @@
 on:
-  push:
-    branches:
-      - 'build-utility-packages-*'
   workflow_call:
     outputs:
       linux-cache-id:
