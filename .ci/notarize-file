@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+
+# Check for required environment variable
+if [ -z "${NOTARIZE_KEY}" ]; then
+    failure "NOTARIZATION_KEY environment variable is required"
+fi
+
+# Validate an input file was provided
+input_file="${1}"
+if [ -z "${input_file}" ]; then
+    failure "Input file is required for notarization"
+fi
+if [ ! -f "${input_file}" ]; then
+    failure "Invalid input file given for notarization (%s)" "${input_file}"
+fi
+
+# Create a file to store the key contents
+key_file="$(mktemp)" ||
+    failure "Failed to create key file"
+chmod 0600 "${key_file}" ||
+    failure "Failed to modify key file permissions"
+
+# Add a cleanup to delete the key file
+function cleanup() {
+    if [ -n "${key_file}" ] && [ -f "${key_file}" ]; then
+        rm -f "${key_file}"
+    fi
+}
+
+# Write the key contents
+printf "%s" "${NOTARIZE_KEY}" > "${key_file}"
+
+# Now notarize the file
+notarize_file -m 3600 -j "${key_file}" "${input_file}"

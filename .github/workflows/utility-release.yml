@@ -10,7 +10,6 @@ jobs:
     name: Build packages
     permissions:
       contents: write
-      packages: write
       id-token: write
     uses: ./.github/workflows/build-utility-packages.yml
     secrets: inherit
@@ -20,7 +19,6 @@ jobs:
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
     permissions:
       contents: read
-      packages: write
       id-token: write
     steps:
       - name: Authentication
@@ -45,11 +43,11 @@ jobs:
         env:
           CACHE_ID: ${{ needs.info.outputs.linux-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - name: Fetch macOS packages
-      #   run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
-      #   env:
-      #     CACHE_ID: ${{ needs.info.outputs.macos-cache-id }}
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fetch macOS packages
+        run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
+        env:
+          CACHE_ID: ${{ needs.info.outputs.macos-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch windows packages
         run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
         env:
