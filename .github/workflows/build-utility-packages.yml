@@ -101,11 +101,12 @@ jobs:
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
           HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
       - name: Sign Windows binary
-        run: ./.ci/sign-file "./bin/vagrant-vmware-utility.exe"
+        run: . .ci/load-ci.sh && sign_file "./bin/vagrant-vmware-utility.exe"
         env:
-          SIGNORE_WINDOWS: ${{ steps.secrets.outputs.signore_windows_signer }}
+          SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_windows_signer }}
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
       - name: Cache signed binaries
         run: ./.ci/create-cache "${CACHE_ID}" ./bin
         env:
@@ -170,7 +171,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-macos-corepkg:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
-    name: Build macOS package
+    name: Build macOS core package
     runs-on: macos-latest
     needs: [info, build]
     permissions:
@@ -184,6 +185,7 @@ jobs:
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build core package
         id: build-core
         run: ./.ci/build-macos-core-pkg ./bin/vagrant-vmware-utility_darwin_universal
@@ -199,9 +201,10 @@ jobs:
           name: corepkg-unsigned
           path: ./corepkg
   sign-macos-corepkg:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Sign macOS core package
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
-    needs: [build-macos-corepkg]
+    needs: [info, build-macos-corepkg]
     permissions:
       id-token: write
       contents: write
@@ -241,8 +244,8 @@ jobs:
           name: corepkg-signed
           path: ./corepkg
   build-macos-fullpkg:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
-    name: Build macOS package
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Build macOS full package
     runs-on: macos-latest
     needs: [info, sign-macos-corepkg]
     steps:
@@ -250,6 +253,11 @@ jobs:
         uses: actions/checkout@v3
       - name: Upgrade bash
         run: brew install bash
+      - name: Fetch binaries
+        run: ./.ci/restore-cache "${CACHE_ID}" ./bin
+        env:
+          CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download signed core package
         uses: actions/download-artifact@v3
         with:
@@ -270,9 +278,10 @@ jobs:
           name: fullpkg-unsigned
           path: ./fullpkg
   sign-macos-fullpkg:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Sign macOS full package
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
-    needs: [build-macos-corepkg]
+    needs: [info, build-macos-fullpkg]
     permissions:
       id-token: write
       contents: write
@@ -312,8 +321,8 @@ jobs:
           name: fullpkg-signed
           path: ./fullpkg
   build-macos-dmg:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
-    name: Build macOS package
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Build macOS DMG
     runs-on: macos-latest
     needs: [info, sign-macos-fullpkg]
     steps:
@@ -341,9 +350,10 @@ jobs:
           name: dmg-unsigned
           path: ./dmg
   sign-and-notarize-macos-dmg:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.macos-cache-exists != 'true'  && !failure() && !cancelled()
+    name: Sign macOS DMG
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
-    needs: [build-macos-dmg]
+    needs: [info, build-macos-dmg]
     permissions:
       id-token: write
       contents: write
@@ -386,6 +396,7 @@ jobs:
         run: ./.ci/create-cache "${CACHE_ID}" ./dmg
         env:
           CACHE_ID: ${{ needs.info.outputs.macos-cache-id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-windows:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder' && needs.info.outputs.windows-cache-exists != 'true'
     name: Build Windows package
