@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - 'build-utility-macos-*'
+      - 'build-utility-packages-*'
   workflow_call:
     outputs:
       linux-cache-id:

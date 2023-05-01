@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - 'build-utility-*'
+      - 'build-utility-prerelease-*'
 
 jobs:
   build-packages:
