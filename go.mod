@@ -9,8 +9,8 @@ require (
 	github.com/hashicorp/hcl/v2 v2.10.0
 	github.com/mitchellh/cli v1.1.2
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/sys v0.0.0-20210601080250-7ecdf8ef093b
+	golang.org/x/crypto v0.1.0
+	golang.org/x/sys v0.1.0
 )
 
 require (
@@ -36,5 +36,5 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/zclconf/go-cty v1.8.3 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/text v0.4.0 // indirect
 )
