@@ -10,7 +10,7 @@ require (
 	github.com/mitchellh/cli v1.1.2
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/sys v0.0.0-20210601080250-7ecdf8ef093b
+	golang.org/x/sys v0.1.0
 )
 
 require (
