@@ -7,50 +7,44 @@ on:
 jobs:
   sync-vagrant-vmware-desktop:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
-    runs-on: ubuntu-18.04
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
+    permissions:
+      id-token: write
+      contents: write
     steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
       - name: Code Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Set Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '2.6'
       - name: Sync vagrant-vmware-desktop Repository
         run: ./.ci/sync.sh
-        working-directory: ${{github.workspace}}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_ASSUME_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-          HASHIBOT_TOKEN: ${{ secrets.HASHIBOT_TOKEN }}
-          HASHIBOT_USERNAME: ${{ secrets.HASHIBOT_USERNAME }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
-
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.vagrant_vmware_desktop_repo_token }}
+          HASHIBOT_USERNAME: ${{ variables.HASHIBOT_USERNAME }}
   sync-vagrant-vmware-desktop-builder:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Set Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '2.6'
       - name: Sync vagrant-vmware-desktop-builder Repository
         run: ./.ci/sync.sh
-        working-directory: ${{github.workspace}}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_ASSUME_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
           HASHIBOT_TOKEN: ${{ secrets.HASHIBOT_TOKEN }}
-          HASHIBOT_USERNAME: ${{ secrets.HASHIBOT_USERNAME }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          VAGRANT_CI_LOADER_BUCKET: ${{ secrets.VAGRANT_CI_LOADER_BUCKET }}
+          HASHIBOT_USERNAME: ${{ variables.HASHIBOT_USERNAME }}
