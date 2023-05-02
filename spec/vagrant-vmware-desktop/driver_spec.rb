@@ -640,7 +640,7 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
       it "should setup adapter in VMX data" do
         expect(vmx).to receive(:[]=).with("ethernet0.present", "TRUE")
         expect(vmx).to receive(:[]=).with("ethernet0.connectiontype", "nat")
-        expect(vmx).to receive(:[]=).with("ethernet0.virtualdev", "e1000")
+        expect(vmx).to receive(:[]=).with("ethernet0.virtualdev", "e1000e")
         instance.setup_adapters(adapters)
       end
 
