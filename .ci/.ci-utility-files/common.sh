@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+#
 # shellcheck disable=SC2119
 # shellcheck disable=SC2164
 
@@ -585,6 +588,7 @@ function sign_file() {
 
     local binary_identifier=""
     local entitlements=""
+    local input_file="${1}"
     local output_file=""
 
     local opt
@@ -597,8 +601,6 @@ function sign_file() {
         esac
     done
     shift $((OPTIND-1))
-
-    local input_file="${1}"
 
     # Check that a good input file was given
     if [ -z "${input_file}" ]; then
@@ -2063,6 +2065,10 @@ function github_create_release() {
 
     if [ -z "${tag_name}" ]; then
         failure "Tag name is required for GitHub release"
+    fi
+
+    if [ "${draft}" = "true" ] && [ "${prerelease}" = "true" ]; then
+        failure "Release cannot be both draft and prerelease"
     fi
 
     # If no name is provided, use the tag name value
