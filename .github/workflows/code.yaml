@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - 'main'
-#      - 'build-*'
+      - 'build-*'
 
 jobs:
   sync-vagrant-vmware-desktop:
@@ -33,7 +33,7 @@ jobs:
         run: ./.ci/sync.sh
         env:
           HASHIBOT_TOKEN: ${{ steps.secrets.outputs.vagrant_vmware_desktop_repo_token }}
-          HASHIBOT_USERNAME: ${{ variables.HASHIBOT_USERNAME }}
+          HASHIBOT_USERNAME: ${{ vars.HASHIBOT_USERNAME }}
   sync-vagrant-vmware-desktop-builder:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop'
     runs-on: ubuntu-latest
@@ -47,4 +47,4 @@ jobs:
         run: ./.ci/sync.sh
         env:
           HASHIBOT_TOKEN: ${{ secrets.HASHIBOT_TOKEN }}
-          HASHIBOT_USERNAME: ${{ variables.HASHIBOT_USERNAME }}
+          HASHIBOT_USERNAME: ${{ vars.HASHIBOT_USERNAME }}
