@@ -11,7 +11,7 @@ root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
 
 export PATH="${PATH}:${root}/.ci"
 
-pushd "${root}" > "${output}"
+pushd "${root}"
 
 # Configure for hashibot
 hashibot_git
