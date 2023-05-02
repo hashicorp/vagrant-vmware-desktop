@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+version="$(<go_src/vagrant-vmware-utility/version/version.go)"
+version="${version##*VERSION = \"}"
+version="${version%%\"*}"
+util_id="$(git log --format=%h -1 ./go_src)" ||
+    failure "Could not generate commit sha for ./go_src"
+
+util_version="${version}+pkgs-${util_id}"
+
+printf "utility-version=%s\n" "${version}" >> "${GITHUB_OUTPUT}"
+printf "utility-pkgs-version=%s\n" "${util_version}" >> "${GITHUB_OUTPUT}"
+
+if [ "${EVENT_NAME}" = "schedule" ]; then
+    target_repo="vagrant-vmware-desktop"
+else
+    target_repo="${repo_name}"
+fi
+
+if github_release_exists "${target_repo}" "${util_version}"; then
+    printf "utility-pkgs-release-exists=true\n" >> "${GITHUB_OUTPUT}"
+fi

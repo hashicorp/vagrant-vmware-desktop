@@ -25,7 +25,7 @@ make all ||
 
 info "Publishing utility binaries prerelease..."
 
-if [ -n "${IS_NIGHTLY}" ]; then
+if [ "${EVENT_NAME}" = "schedule" ]; then
     body="Vagrant VMware Utility binaries nightly build"
 else
     body="Vagrant VMware Utility binaries custom build (branch: ${ident_ref})"
@@ -38,5 +38,5 @@ release_id="$(printf "%s" "${release_output}" | jq -r '.id')" ||
     failure "Could not get release ID from release creation response"
 
 # Upload release artifacts
-debug "uploading artifacts for vagrant vmware utility binaries release '%s' (ID: %d)" "${nightly_name}" "${release_id}"
+debug "uploading artifacts for vagrant vmware utility binaries release '%s' (ID: %d)" "${release_name}" "${release_id}"
 github_upload_release_artifacts "${repo_name}" "${release_id}" ./bin
