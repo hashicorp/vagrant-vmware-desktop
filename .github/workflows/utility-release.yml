@@ -5,6 +5,21 @@ on:
       - '!utility-v*\+*'
 
 jobs:
+  sync-for-build:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
+    name: Trigger build release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Sync utility build tag
+        run: ./.ci/sync-tag
+        env:
+          HASHIBOT_TOKEN: ${{ secrets.HASHIBOT_TOKEN }}
+          HASHIBOT_USERNAME: ${{ vars.HASHIBOT_USERNAME }}
   build-packages:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
     name: Build packages
@@ -32,10 +47,14 @@ jobs:
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
           token: ${{ steps.vault-auth.outputs.token }}
           secrets:
+            kv/data/teams/vagrant/hashibot signore_token;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_host;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_key;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_access_key_id;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_secret_access_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_id;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_gpg_signer;
       - name: Code Checkout
         uses: actions/checkout@v3
       - name: Fetch linux packages
@@ -54,9 +73,13 @@ jobs:
           CACHE_ID: ${{ needs.info.outputs.windows-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Release Packages
-        run: . ./.ci/load-ci.sh && hashicorp_release "./pkg" "vagrant-vmware-utility" "${UTILITY_VERSION}"
+        run: ./.ci/utility-packages-release "${UTILITY_VERSION}" "./pkg"
         env:
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
           UTILITY_VERSION: ${{ needs.build-packages.outputs.utility-version }}
+          SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_gpg_signer }}
+          SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
+          SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
           RELEASE_AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.release_aws_access_key_id }}
           RELEASE_AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.release_aws_secret_access_key }}
           RELEASE_AWS_ASSUME_ROLE_ARN: ${{ steps.secrets.outputs.release_aws_assume_role_arn }}
