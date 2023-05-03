@@ -3,6 +3,9 @@ on:
     branches:
       - 'main'
       - 'build-*'
+    tags:
+      - 'desktop-v*'
+      - 'utility-v*'
 
 jobs:
   sync-vagrant-vmware-desktop:
