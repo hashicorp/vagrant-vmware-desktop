@@ -18,7 +18,7 @@ version="${version%%\"*}"
 util_id="$(git log --format=%h -1 ./go_src)" ||
     failure "Could not generate commit sha for ./go_src"
 
-util_version="${version}+bins-${util_id}"
+util_version="utility-v${version}+bins-${util_id}"
 
 printf "utility-version=%s\n" "${version}" >> "${GITHUB_OUTPUT}"
 printf "utility-bins-version=%s\n" "${util_version}" >> "${GITHUB_OUTPUT}"
