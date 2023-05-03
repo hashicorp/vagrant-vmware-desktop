@@ -12,24 +12,22 @@ root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
 . "${root}/.ci/load-ci.sh"
 pushd "${root}"
 
-release_version="${1}"
-if [ -z "${release_version}" ]; then
-    failure "Release version is required for downloading released plugin gem"
-fi
+version="$(<./versions/desktop.txt)"
 
 tmpdir="$(mktemp -d -p ./)" ||
     failure "Failed to create temporary directory for plugin gem download"
 
 pushd "${tmpdir}"
-github_release_assets "${repo_name}" "${release_version}" ".gem"
+tmpdir="$(pwd)" ||
+    failure "Failed to get full path of download directory"
+github_release_assets "vagrant-vmware-desktop" "${version}" ".gem"
 popd
 
-gem=( "${tmpdir}/"* )
-gem="${gem[0]}"
+gem_list=( "${tmpdir}/"* )
+gem="${gem_list[0]}"
 
 if [ ! -f "${gem}" ]; then
     failure "Expected plugin gem download was not found"
 fi
-
 
 printf "plugin-path=%s\n" "${gem}" >> "${GITHUB_OUTPUT}"

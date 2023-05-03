@@ -11,9 +11,15 @@ gem_path="${1}"
 if [ -z "${gem_path}" ]; then
     failure "Path to plugin gem file is required for publishing"
 fi
-
 if [ ! -f "${gem_path}" ]; then
     failure "Path provided does not contain a file (%s)" "${gem_path}"
+fi
+
+version="$(<./versions/desktop.txt)"
+
+if is_version_on_rubygems "vagrant-vmware-desktop" "${version}"; then
+    warn "Vagrant VMware desktop plugin (version %s) already published to RubyGems.org" "${version}"
+    exit
 fi
 
 # Publish our gem

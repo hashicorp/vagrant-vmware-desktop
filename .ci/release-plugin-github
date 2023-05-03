@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+gem="${1}"
+
+if [ -z "${gem}" ]; then
+    failure "Path to gem artifact for release is required"
+fi
+if [ ! -f "${gem}" ]; then
+    failure "Provided path to gem artifact for release is invalid (%s)" "${gem}"
+fi
+
+info "Publishing release to %s/vagrant-vmware-desktop (%s)" "${repo_owner}" "${tag}"
+
+release_output=$(github_create_release \
+    -o "${repo_owner}" \
+    -r "vagrant-vmware-desktop" \
+    -n "${tag}" \
+    -t "${tag}" \
+    -c "${full_sha}" \
+    -b "Vagrant VMware desktop provider plugin" \
+    -m ) ||
+    failure "Failed to create GitHub release"
+debug "new release created: %s" "${release_output}"
+release_id="$(printf "%s" "${release_output}" | jq -r '.id')" ||
+    failure "Could not get release ID from release creation response"
+
+debug "Uploading gem artifact for vagrant vmware desktop release '%s' (%q)" "${tag}" "${release_id}"
+github_upload_release_artifacts "${repo_name}" "${release_id}" "${gem}"
