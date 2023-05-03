@@ -7,27 +7,47 @@ jobs:
   release:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
     name: Vagrant VMware Desktop Plugin Release
-    runs-on: ubuntu-latest
+    runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
     permissions:
+      id-token: write
       contents: write
-      packages: write
     steps:
+      - name: Authentication
+        id: vault-auth
+        run: vault-auth
+      - name: Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets:
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder rubygems_api_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
       - name: Code Checkout
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }} # set this so we can push our branch later
       - name: Setup Ruby
-        uses: actions/setup-ruby@v1
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1'
       - name: Build Vagrant VMware Desktop Plugin
         id: build
         run: ./.ci/build-plugin
-      - name: Create Local Release
-        run: . ./.ci/load-ci.sh && release "${GITHUB_REF##*tags/}" "${GEM_PATH}"
+      - name: Create GitHub release
+        run: ./.ci/release-plugin-github "${GEM_ARTIFACT}"
         env:
-          GEM_PATH: ${{ steps.build.outputs.gem-path }}
+          GEM_ARTIFACT: ${{ steps.build.outputs.gem-path }}
+          GITHUB_TOKEN: ${{ steps.secrets.outputs.vagrant_vmware_desktop_repo_token }}
+      - name: Publish RubyGems.org
+        run: ./.ci/release-rubygems "${PLUGIN_PATH}"
+        env:
+          PLUGIN_PATH: ${{ steps.build.outputs.gem-path }}
+          RUBYGEMS_API_KEY: ${{ steps.secrets.outputs.rubygems_api_key }}
+      - name: Trigger Hashigems Publish
       - name: Push Branch to Publish
         run: ./.ci/push-publish-branch
         env:
-          PUBLISH_BRANCH: ${{ secrets.HASHIGEMS_PUBLISH_BRANCH }}
+          PUBLISH_BRANCH: ${{ vars.HASHIGEMS_PUBLISH_BRANCH }}

@@ -16,5 +16,16 @@ if [ ! -f "${gem_path}" ]; then
     failure "Path provided does not contain a file (%s)" "${gem_path}"
 fi
 
+version="$(<./versions/desktop.txt)"
+
+if is_version_on_hashigems "vagrant-vmware-desktop" "${version}"; then
+    warn "Vagrant VMware desktop plugin (version %s) already published to Hashigems" "${version}"
+    exit
+fi
+
 # Publish our gem
 publish_to_hashigems "${gem_path}"
+
+# Delete the trigger branch
+git push origin ":${ident_ref}" ||
+    warn "Failed to delete git branch (name: %s)" "${ident_ref}"
