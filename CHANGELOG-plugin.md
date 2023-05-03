@@ -1,3 +1,5 @@
+## 3.0.3 (Unreleased)
+
 ## 3.0.2 (May 3, 2023)
 
 - Specify product type to `vmrun` [[GH-59]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/59)
