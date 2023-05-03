@@ -47,7 +47,6 @@ jobs:
           PLUGIN_PATH: ${{ steps.build.outputs.gem-path }}
           RUBYGEMS_API_KEY: ${{ steps.secrets.outputs.rubygems_api_key }}
       - name: Trigger Hashigems Publish
-      - name: Push Branch to Publish
         run: ./.ci/push-publish-branch
         env:
           PUBLISH_BRANCH: ${{ vars.HASHIGEMS_PUBLISH_BRANCH }}
