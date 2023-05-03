@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Output to stdout if we aren't on a runner
+if [ -z "${GITHUB_OUTPUT}" ]; then
+    GITHUB_OUTPUT="/dev/stdout"
+fi
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+pushd "${root}"
+
+release_version="${1}"
+release_dir="${2}"
+
+if [ -z "${release_version}" ]; then
+    failure "Version is required for release"
+fi
+
+if [ -z "${release_dir}" ]; then
+    failure "Artifact directory is required for release"
+fi
+
+if [ -d "${release_dir}" ]; then
+    failure "Provided artifact directory path is not a valid directory (%s)" "${release_dir}"
+fi
+
+# Get the full path of the release directory
+pushd "${release_dir}"
+release_dir="$(pwd)" || failure "Failed to read directory path (%s)" "${release_dir}"
+popd
+
+info "Starting HashiCorp release process..."
+
+hashicorp_release "${release_dir}" "vagrant-vmware-utility" "${release_version}"
