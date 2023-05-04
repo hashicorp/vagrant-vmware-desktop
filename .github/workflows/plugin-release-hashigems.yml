@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Code Checkout
         uses: actions/checkout@v3
@@ -27,7 +28,7 @@ jobs:
       - name: Release Vagrant VMware Desktop Plugin
         run: ./.ci/release-hashigems "${PLUGIN_PATH}"
         env:
-          PLUGIN_PATH: steps.fetch.outputs.plugin_path
+          PLUGIN_PATH: ${{ steps.fetch.outputs.plugin-path }}
           HASHIGEMS_METADATA_BUCKET: ${{ vars.HASHIGEMS_METADATA_BUCKET }}
           HASHIGEMS_PUBLIC_BUCKET: ${{ vars.HASHIGEMS_PUBLIC_BUCKET }}
           HASHIGEMS_CLOUDFRONT_ID: ${{ vars.HASHIGEMS_DISTRIBUTION_ID }}
