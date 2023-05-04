@@ -29,10 +29,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }} # set this so we can push our branch later
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.1'
+      - name: Install Ruby
+        run: sudo apt-get install -yq ruby
+        env:
+          DEBIAN_FRONTEND: noninteractive
       - name: Build Vagrant VMware Desktop Plugin
         id: build
         run: ./.ci/build-plugin
