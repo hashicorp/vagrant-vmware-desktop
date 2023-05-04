@@ -13,6 +13,7 @@ root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
 pushd "${root}"
 
 version="$(<./versions/desktop.txt)"
+release_tag="desktop-v${version}"
 
 tmpdir="$(mktemp -d -p ./)" ||
     failure "Failed to create temporary directory for plugin gem download"
@@ -20,7 +21,7 @@ tmpdir="$(mktemp -d -p ./)" ||
 pushd "${tmpdir}"
 tmpdir="$(pwd)" ||
     failure "Failed to get full path of download directory"
-github_release_assets "vagrant-vmware-desktop" "${version}" ".gem"
+github_release_assets "vagrant-vmware-desktop" "${release_tag}" ".gem"
 popd
 
 gem_list=( "${tmpdir}/"* )
