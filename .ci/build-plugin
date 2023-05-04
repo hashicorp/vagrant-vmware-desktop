@@ -15,7 +15,7 @@ pushd "${root}"
 version="$(<./versions/desktop.txt)"
 
 # Locate our gemspec file
-specs=( "./vagrant-vmware-desktop*.gemspec" )
+specs=( ./vagrant-vmware-desktop*.gemspec )
 gemspec_file="${specs[0]}"
 
 if [ ! -f "${gemspec_file}" ]; then
@@ -27,7 +27,7 @@ debug "using gemspec at %s to build plugin gem" "${gemspec_file}"
 gem build "${gemspec_file}" ||
     failure "Failed to build plugin gem"
 
-gems=( "./vagrant-vmware-desktop*.gem" )
+gems=( ./vagrant-vmware-desktop*.gem )
 gem_path="${gems[0]}"
 
 if [ ! -f "${gem_path}" ]; then
