@@ -16,6 +16,12 @@ if [ ! -f "${gem}" ]; then
     failure "Provided path to gem artifact for release is invalid (%s)" "${gem}"
 fi
 
+if github_release_exists "vagrant-vmware-desktop" "${tag}"; then
+    warn "Found existing GitHub release for '%s' on %s/vagrant-vmware-desktop, skipping..." \
+        "${tag}" "${repo_owner}"
+    exit
+fi
+
 info "Publishing release to %s/vagrant-vmware-desktop (%s)" "${repo_owner}" "${tag}"
 
 release_output=$(github_create_release \
@@ -23,7 +29,6 @@ release_output=$(github_create_release \
     -r "vagrant-vmware-desktop" \
     -n "${tag}" \
     -t "${tag}" \
-    -c "${full_sha}" \
     -b "Vagrant VMware desktop provider plugin" \
     -m ) ||
     failure "Failed to create GitHub release"
@@ -32,4 +37,4 @@ release_id="$(printf "%s" "${release_output}" | jq -r '.id')" ||
     failure "Could not get release ID from release creation response"
 
 debug "Uploading gem artifact for vagrant vmware desktop release '%s' (%q)" "${tag}" "${release_id}"
-github_upload_release_artifacts "${repo_name}" "${release_id}" "${gem}"
+github_upload_release_artifacts "vagrant-vmware-desktop" "${release_id}" "${gem}" || exit
