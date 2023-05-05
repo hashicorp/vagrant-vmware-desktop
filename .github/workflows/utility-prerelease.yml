@@ -2,6 +2,9 @@ on:
   push:
     branches:
       - 'build-pkg-*'
+  schedule:
+    - cron: '15 1 * * *'
+  workflow_dispatch:
 
 jobs:
   info:
