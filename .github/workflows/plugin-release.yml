@@ -24,11 +24,16 @@ jobs:
           token: ${{ steps.vault-auth.outputs.token }}
           secrets:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder rubygems_api_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_builder_repo_token;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
       - name: Code Checkout
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # set this so we can push our branch later
+          # NOTE: This is set so we can push the publish branch
+          #       for the hashigems workflow. A custom token is
+          #       used since the auto-generated token won't trigger
+          #       a workflow run
+          token: ${{ steps.secrets.outputs.vagrant_vmware_desktop_builder_repo_token }}
       - name: Install Ruby
         run: sudo apt-get install -yq ruby
         env:
