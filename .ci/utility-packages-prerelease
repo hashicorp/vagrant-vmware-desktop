@@ -40,4 +40,4 @@ release_id="$(printf "%s" "${release_output}" | jq -r '.id')" ||
 
 # Upload release artifacts
 debug "uploading artifacts for vagrant vmware utility packages release '%s' (ID: %d)" "${release_name}" "${release_id}"
-github_upload_release_artifacts "${repo_name}" "${release_id}" "${release_dir}"
+github_upload_release_artifacts "${target_repo}" "${release_id}" "${release_dir}"
