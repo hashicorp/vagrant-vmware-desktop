@@ -70,8 +70,8 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
       context "when license is standard" do
         let(:license) { "vl" }
 
-        it "should return the type as 'player'" do
-          expect(instance.product_type).to eq("player")
+        it "should return the type as 'fusion'" do
+          expect(instance.product_type).to eq("fusion")
         end
       end
 

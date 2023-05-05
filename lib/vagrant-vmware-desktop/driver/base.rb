@@ -186,17 +186,22 @@ module HashiCorp
         def product_type
           return @product_type if @product_type
 
-          # If the license is standard, the type is player
-          if standard?
-            return @product_type = "player"
-          end
-
+          @logger.debug("determining product type")
           case @product_name.downcase
           when "workstation"
-            @product_type = "ws"
+            # If the license is standard, the type is player
+            if standard?
+              @logger.debug("workstation product with standard license: player")
+              @product_type = "player"
+            else
+              @logger.debug("workstation product with professional license: ws")
+              @product_type = "ws"
+            end
           when "fusion"
+            @logger.debug("fusion product: fusion")
             @product_type = "fusion"
           else
+            @logger.debug("unknown product (#{@product_name}), defaulting: player")
             @product_type = "player"
           end
 
