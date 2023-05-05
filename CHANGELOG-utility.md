@@ -1,4 +1,7 @@
-## 1.0.22 (UNRELEASED)
+## 1.0.22 (May 5, 2023)
+
+- Updated dependency libraries [[GH-73]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/73)
+- macOS universal build [[GH-58]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/58)
 
 ## 1.0.21 (September 29, 2021)
 
