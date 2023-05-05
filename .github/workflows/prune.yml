@@ -4,17 +4,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  prune-drafts:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builders'
-    name: Prune stale draft releases
+  prune-builder:
+    name: Prune stale drafts and prereleases
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
     steps:
       - name: Code Checkout
         uses: actions/checkout@v3
       - name: Prune any drafts older than 20 days
         run: . ./.ci/load-ci.sh && github_draft_release_prune "20"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Only retain last 10 prereleases
+        run: . ./.ci/load-ci.sh && github_release_prune_retain "prerelease" "10"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
