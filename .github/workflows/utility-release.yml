@@ -5,21 +5,6 @@ on:
       - '!utility-v*\+*'
 
 jobs:
-  sync-for-build:
-    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
-    name: Trigger build release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Code Checkout
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Sync utility build tag
-        run: ./.ci/sync-tag
-        env:
-          HASHIBOT_TOKEN: ${{ secrets.HASHIBOT_TOKEN }}
-          HASHIBOT_USERNAME: ${{ vars.HASHIBOT_USERNAME }}
   build-packages:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
     name: Build packages
