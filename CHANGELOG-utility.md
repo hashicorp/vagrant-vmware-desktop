@@ -1,3 +1,5 @@
+## 1.0.23 (Unreleased)
+
 ## 1.0.22 (May 5, 2023)
 
 - Updated dependency libraries [[GH-73]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/73)
