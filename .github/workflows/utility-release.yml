@@ -15,10 +15,11 @@ jobs:
     secrets: inherit
   release:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    name: Release packages
     needs: [build-packages]
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Authentication
@@ -32,11 +33,14 @@ jobs:
           caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
           token: ${{ steps.vault-auth.outputs.token }}
           secrets:
-            kv/data/teams/vagrant/hashibot signore_token;
-            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_host;
-            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder hashicorp_release_github_token;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_api_production_host;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_api_production_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_api_staging_host;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_api_staging_key;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_access_key_id;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_secret_access_key;
+            kv/data/github/hashicorp/vagrant-vmware-desktop-builder releases_aws_role_arn;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_id;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_gpg_signer;
@@ -45,30 +49,32 @@ jobs:
       - name: Fetch linux packages
         run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
         env:
-          CACHE_ID: ${{ needs.info.outputs.linux-cache-id }}
+          CACHE_ID: ${{ needs.build-packages.outputs.linux-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch macOS packages
         run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
         env:
-          CACHE_ID: ${{ needs.info.outputs.macos-cache-id }}
+          CACHE_ID: ${{ needs.build-packages.outputs.macos-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fetch windows packages
         run: ./.ci/restore-cache "${CACHE_ID}" ./pkg
         env:
-          CACHE_ID: ${{ needs.info.outputs.windows-cache-id }}
+          CACHE_ID: ${{ needs.build-packages.outputs.windows-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Release Packages
         run: ./.ci/utility-packages-release "${UTILITY_VERSION}" "./pkg"
         env:
-          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.signore_token }}
+          HASHIBOT_TOKEN: ${{ steps.secrets.outputs.hashicorp_release_github_token }}
           UTILITY_VERSION: ${{ needs.build-packages.outputs.utility-version }}
           SIGNORE_SIGNER: ${{ steps.secrets.outputs.signore_gpg_signer }}
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
-          RELEASE_AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.release_aws_access_key_id }}
-          RELEASE_AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.release_aws_secret_access_key }}
-          RELEASE_AWS_ASSUME_ROLE_ARN: ${{ steps.secrets.outputs.release_aws_assume_role_arn }}
-          HC_RELEASES_PROD_HOST: ${{ steps.secrets.outputs.hc_releases_prod_host }}
-          HC_RELEASES_PROD_KEY: ${{ steps.secrets.outputs.hc_releases_prod_key }}
-          HC_RELEASES_STAGING_HOST: ${{ steps.secrets.outputs.hc_releases_staging_host }}
-          HC_RELEASES_STAGING_KEY: ${{ steps.secrets.outputs.hc_releases_staging_key }}
+          RELEASE_AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.releases_aws_access_key_id }}
+          RELEASE_AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.releases_aws_secret_access_key }}
+          RELEASE_AWS_ASSUME_ROLE_ARN: ${{ steps.secrets.outputs.releases_aws_role_arn }}
+          HC_RELEASES_PROD_SNS_TOPIC: ${{ vars.HASHICORP_RELEASES_SNS_ARN }}
+          HC_RELEASES_PROD_HOST: ${{ steps.secrets.outputs.releases_api_production_host }}
+          HC_RELEASES_PROD_KEY: ${{ steps.secrets.outputs.releases_api_production_key }}
+          HC_RELEASES_STAGING_HOST: ${{ steps.secrets.outputs.releases_api_staging_host }}
+          HC_RELEASES_STAGING_KEY: ${{ steps.secrets.outputs.releases_api_staging_key }}
+          HASHICORP_PUBLIC_GPG_KEY_ID: ${{ vars.HASHICORP_GPG_SIGNING_ID }}
