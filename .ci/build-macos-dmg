@@ -24,7 +24,7 @@ if [ -z "${UTILITY_VERSION}" ]; then
 fi
 
 # Properly formatted name for releases
-asset_name="vagrant-vmware-utility_${UTILITY_VERSION}_darwin_amd64.dmg"
+asset_name="vagrant-vmware-utility_${UTILITY_VERSION}_darwin_universal.dmg"
 
 # Check if we have the dmgbuild command available. If not,
 # install it now.
