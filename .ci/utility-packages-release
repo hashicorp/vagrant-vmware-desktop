@@ -23,7 +23,7 @@ if [ -z "${release_dir}" ]; then
     failure "Artifact directory is required for release"
 fi
 
-if [ -d "${release_dir}" ]; then
+if [ ! -d "${release_dir}" ]; then
     failure "Provided artifact directory path is not a valid directory (%s)" "${release_dir}"
 fi
 
