@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# This script is used for updating the macos package from a single
+# universal package to two arch based packages (by making a copy
+# of the file). This is done because the release system only supports
+# darwin packages with "arm64" or "amd64". Once "universal" is supported,
+# this can be removed.
+
+csource="${BASH_SOURCE[0]}"
+while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
+root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+
+. "${root}/.ci/load-ci.sh"
+
+pkg_dir="${1}"
+
+if [ -z "${pkg_dir}" ]; then
+    failure "Directory containing macOS DMG required"
+fi
+if [ ! -d "${pkg_dir}" ]; then
+    failure "Provided path is not a directory (%s)" "${pkg_dir}"
+fi
+
+pushd "${pkg_dir}"
+
+files=( ./*_universal.dmg )
+dmg_path="${files[0]}"
+if [ ! -f "${dmg_path}" ]; then
+    failure "Failed to detect DMG path in '%s' (%s)" "${pkg_dir}" "${dmg_path}"
+fi
+
+base_name="${dmg_path##*/}"
+base_name="${base_name%_universal.dmg}"
+
+cp "${dmg_path}" "./${base_name}_amd64.dmg" ||
+    failure "Unable to create amd64 instance of DMG"
+cp "${dmg_path}" "./${base_name}_arm64.dmg" ||
+    failure "Unable to create arm64 instance of DMG"
+
+rm -f "${dmg_path}"
