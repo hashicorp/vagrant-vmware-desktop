@@ -61,6 +61,8 @@ jobs:
         env:
           CACHE_ID: ${{ needs.build-packages.outputs.windows-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update macOS package name
+        run: ./.ci/utility-macos-rename-release ./pkg
       - name: Release Packages
         run: ./.ci/utility-packages-release "${UTILITY_VERSION}" "./pkg"
         env:
