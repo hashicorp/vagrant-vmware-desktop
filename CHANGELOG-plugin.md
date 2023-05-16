@@ -1,4 +1,7 @@
-## 3.0.3 (Unreleased)
+## 3.0.3 (May 16, 2023)
+
+- Fix command formatting in the driver [[GH-87]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/87)
+- Only use `fusion` type for VMware Fusion [[GH-79]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/79)
 
 ## 3.0.2 (May 3, 2023)
 
