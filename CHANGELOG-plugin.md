@@ -1,3 +1,5 @@
+## 3.0.4 (UNRELEASED)
+
 ## 3.0.3 (May 16, 2023)
 
 - Fix command formatting in the driver [[GH-87]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/87)
