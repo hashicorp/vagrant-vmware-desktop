@@ -44,6 +44,20 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
     allow_any_instance_of(HashiCorp::VagrantVMwareDesktop::Errors::Base).to receive(:translate_error)
   end
 
+  describe "#vmexec" do
+    let(:result) { Vagrant::Util::Subprocess::Result.new(0, "", "") }
+
+    it "should cast command arguments to strings" do
+      expect(Vagrant::Util::Subprocess).to receive(:execute).with("command", "1", "2", "three", anything).and_return(result)
+      instance.send(:vmexec, "command", 1, 2, "three")
+    end
+
+    it "should not cast supplied options to string" do
+      expect(Vagrant::Util::Subprocess).to receive(:execute).with("command", "argument", {notify: [:stdout, :stderr]}).and_return(result)
+      instance.send(:vmexec, "command", "argument")
+    end
+  end
+
   describe "#product_type" do
     let(:info_response) do
       utility_response.new(info_response_hash)
