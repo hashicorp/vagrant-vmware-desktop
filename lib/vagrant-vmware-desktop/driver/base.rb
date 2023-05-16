@@ -1259,7 +1259,7 @@ module HashiCorp
           command_opts = { :notify => [:stdout, :stderr] }
           command_opts[:timeout] = opts[:timeout] if opts[:timeout]
 
-          command = command.dup
+          command = command.dup.map(&:to_s)
           command << command_opts
 
 
@@ -1269,7 +1269,7 @@ module HashiCorp
               if VagrantVMwareDesktop.wsl?
                 r_path = VagrantVMwareDesktop.windows_to_wsl_path(r_path)
               end
-              result = Vagrant::Util::Subprocess.execute(r_path, *command.map(&:to_s))
+              result = Vagrant::Util::Subprocess.execute(r_path, *command)
               if result.exit_code != 0
                 raise Errors::VMExecError,
                   :executable => executable.to_s,
