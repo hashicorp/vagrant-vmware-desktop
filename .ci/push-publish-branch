@@ -16,5 +16,5 @@ git commit --allow-empty -m "Hashigems Publishing" ||
     failure "Could not create empty commit on publishing branch (%s)" "${PUBLISH_BRANCH}"
 
 # Force push the branch as we do not care what already exists
-git push origin --force --set-upstream origin "${PUBLISH_BRANCH}" ||
+git push origin --force "${PUBLISH_BRANCH}" ||
     failure "Could not push branch '%s' to origin" "${PUBLISH_BRANCH}"
