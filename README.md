@@ -30,7 +30,7 @@ gem build vagrant-vmware-desktop.gemspec
 
 ### Utility Service
 
-This part fo the plugin lives in the `go_src` directory and is required to be
+This part of the plugin lives in the `go_src` directory and is required to be
 running when using the vagrant-vmware-desktop plugin. To build and start it:
 
 
