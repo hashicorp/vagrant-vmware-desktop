@@ -119,7 +119,7 @@ module HashiCorp
               current_mount_point = "#{VAGRANT_ROOT_MOUNT_POINT}/#{uid}-#{gid}"
               hgfs_mount_options = "allow_other,default_permissions,uid=#{uid},gid=#{gid}"
               hgfs_mount_options << ",#{options[:extra]}" if options[:extra]
-              hgfs_mount_options << ",#{options[:mount_options].join(',')}" if options[:mount_options] && options[:mount_options].length() > 0
+              hgfs_mount_options << ",#{Array(options[:mount_options]).join(',')}" if !Array(options[:mount_options]).empty?
               hgfs_mount = "vmhgfs-fuse -o #{hgfs_mount_options} .host:/ '#{current_mount_point}'"
 
               # Allow user to disable unmounting of default vmhgfs-fuse mount point at /mnt/hgfs
