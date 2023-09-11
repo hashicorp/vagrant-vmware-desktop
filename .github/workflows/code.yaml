@@ -28,7 +28,7 @@ jobs:
           secrets:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           persist-credentials: false
           fetch-depth: 0
