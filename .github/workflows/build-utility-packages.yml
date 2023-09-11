@@ -35,7 +35,7 @@ jobs:
       windows-cache-exists: ${{ steps.inspect.outputs.windows-cache-exists }}
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           fetch-depth: 0
       - name: Gather information
@@ -69,10 +69,10 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_binary_signer;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_windows_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Setup Go
         if: needs.info.outputs.unsigned-cache-exists != 'true'
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version-file: go.mod
       - name: Build utility binaries
@@ -118,14 +118,14 @@ jobs:
       contents: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Fetch binaries
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload for Windows
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: windows-binary
           path: ./bin
@@ -138,14 +138,14 @@ jobs:
       contents: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Fetch binaries
         run: ./.ci/restore-cache "${CACHE_ID}" ./bin
         env:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@250fcd6a742febb1123a77a841497ccaa8b9e939 # v1.152.0
         with:
           ruby-version: 3.1
           bundler-cache: true
@@ -175,7 +175,7 @@ jobs:
       contents: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Upgrade bash
         run: brew install bash
       - name: Fetch binaries
@@ -193,7 +193,7 @@ jobs:
         env:
           CORE_PKG: ${{ steps.build-core.outputs.core-path }}
       - name: Upload core package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: corepkg-unsigned
           path: ./corepkg
@@ -222,9 +222,9 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_installer_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Download unsigned core package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: corepkg-unsigned
           path: ./corepkg
@@ -236,7 +236,7 @@ jobs:
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
       - name: Upload signed core package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: corepkg-signed
           path: ./corepkg
@@ -247,7 +247,7 @@ jobs:
     needs: [info, sign-macos-corepkg]
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Upgrade bash
         run: brew install bash
       - name: Fetch binaries
@@ -256,7 +256,7 @@ jobs:
           CACHE_ID: ${{ needs.info.outputs.signed-cache-id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Download signed core package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: corepkg-signed
           path: ./corepkg
@@ -270,7 +270,7 @@ jobs:
         env:
           FULL_PKG: ${{ steps.build-full.outputs.full-path }}
       - name: Upload full package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: fullpkg-unsigned
           path: ./fullpkg
@@ -299,9 +299,9 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_installer_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Download unsigned full package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: fullpkg-unsigned
           path: ./fullpkg
@@ -313,7 +313,7 @@ jobs:
           SIGNORE_CLIENT_ID: ${{ steps.secrets.outputs.signore_client_id  }}
           SIGNORE_CLIENT_SECRET: ${{ steps.secrets.outputs.signore_client_secret }}
       - name: Upload signed full package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: fullpkg-signed
           path: ./fullpkg
@@ -324,11 +324,11 @@ jobs:
     needs: [info, sign-macos-fullpkg]
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Upgrade bash
         run: brew install bash
       - name: Download signed full package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: fullpkg-signed
           path: ./fullpkg
@@ -342,7 +342,7 @@ jobs:
         env:
           DMG: ${{ steps.build-dmg.outputs.dmg-path }}
       - name: Upload DMG
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: dmg-unsigned
           path: ./dmg
@@ -372,9 +372,9 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_macos_binary_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Download unsigned DMG
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: dmg-unsigned
           path: ./dmg
@@ -403,9 +403,9 @@ jobs:
       contents: write
     steps:
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Fetch utility binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: windows-binary
           path: ./bin
@@ -414,7 +414,7 @@ jobs:
         env:
           UTILITY_VERSION: ${{ needs.info.outputs.utility-version }}
       - name: Upload unsigned artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: windows-unsigned-msi
           path: ./pkg
@@ -443,9 +443,9 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_client_secret;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder signore_windows_signer;
       - name: Code Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Fetch MSI
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: windows-unsigned-msi
           path: ./pkg
