@@ -99,26 +99,24 @@ module HashiCorp
           Cap::Provider
         end
 
-        Vagrant::Util::Experimental.guard_with(:disks) do
-          provider_capability(p_name, :set_default_disk_ext) do
-            require File.expand_path("../cap/disk", __FILE__)
-            Cap::Disk
-          end
+        provider_capability(p_name, :set_default_disk_ext) do
+          require File.expand_path("../cap/disk", __FILE__)
+          Cap::Disk
+        end
 
-          provider_capability(p_name, :default_disk_exts) do
-            require File.expand_path("../cap/disk", __FILE__)
-            Cap::Disk
-          end
+        provider_capability(p_name, :default_disk_exts) do
+          require File.expand_path("../cap/disk", __FILE__)
+          Cap::Disk
+        end
 
-          provider_capability(p_name, :configure_disks) do
-            require File.expand_path("../cap/disk", __FILE__)
-            Cap::Disk
-          end
+        provider_capability(p_name, :configure_disks) do
+          require File.expand_path("../cap/disk", __FILE__)
+          Cap::Disk
+        end
 
-          provider_capability(p_name, :cleanup_disks) do
-            require File.expand_path("../cap/disk", __FILE__)
-            Cap::Disk
-          end
+        provider_capability(p_name, :cleanup_disks) do
+          require File.expand_path("../cap/disk", __FILE__)
+          Cap::Disk
         end
       end
 
