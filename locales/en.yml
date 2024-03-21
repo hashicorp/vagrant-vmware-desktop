@@ -16,6 +16,9 @@ en:
         Configuring network adapters within the VM...
       destroying: |-
         Deleting the VM...
+      disk_not_growing_linked_primary: |-
+        Increasing the size of the primary disk is not allowed for linked
+        clones. Primary disk of the guest remains unchanged.
       disk_not_shrinking: |-
         Shrinking disks is not supported. Not shrinking disk %{path}
       discarding_suspended_state: |-
