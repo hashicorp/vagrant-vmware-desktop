@@ -7,7 +7,8 @@ require "vagrant"
 require "vagrant-vmware-desktop/cap/disk"
 
 describe HashiCorp::VagrantVMwareDesktop::Cap::Disk do
-  let(:driver) { double("driver") }
+  let(:driver) { double("driver", 'is_linked_clone?': linked_clone) }
+  let(:linked_clone) { false }
   let(:ui) { double("ui") }
   let(:machine) { double("machine", provider: double("provider", driver: driver),
     env: double("env", ui: ui))}
@@ -44,7 +45,6 @@ describe HashiCorp::VagrantVMwareDesktop::Cap::Disk do
   ]}
 
   before do
-    allow(Vagrant::Util::Experimental).to receive(:feature_enabled?).and_return(true)
     allow(driver).to receive(:vmx_path).and_return(vmx_path)
   end
 
@@ -194,6 +194,29 @@ describe HashiCorp::VagrantVMwareDesktop::Cap::Disk do
         expect{
           described_class.configure_disks(machine, defined_disks)
         }.to raise_error(HashiCorp::VagrantVMwareDesktop::Errors::DiskNotResizedSnapshot)
+      end
+
+      context "when guest is a linked clone" do
+        let(:linked_clone) { true }
+
+        before do
+          allow(ui).to receive(:warn)
+          allow(driver).to receive(:grow_disk)
+          allow(driver).to receive(:snapshot_list).and_return([])
+        end
+
+        it "should warn it will not grow linked clone" do
+          expect(ui).to receive(:warn).with(/Primary disk of the guest remains/)
+          described_class.configure_disks(machine, defined_disks)
+        end
+
+        it "should not grow the primary disk" do
+          expect(driver).to receive(:grow_disk).once
+          expect(described_class).to_not receive(:create_disk)
+          expect(driver).to_not receive(:add_disk_to_vmx)
+          configured_disks = described_class.configure_disks(machine, defined_disks)
+          expect(configured_disks[:disk].map { |d| d.flatten.any?(nil) }.any?(true)).to be(false)
+        end
       end
 
       context "vmx pointing to not root metadata disk" do

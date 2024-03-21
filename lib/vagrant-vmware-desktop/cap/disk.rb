@@ -28,7 +28,7 @@ module HashiCorp
         # 5 : compressed disk optimized for streaming
         # 6 : thin provisioned virtual disk - ESX 3.x and above
         DEFAULT_DISK_TYPE = 0.freeze
-        PRIMARY_DISK_SLOT = "scsi0:0".freeze
+        PRIMARY_DISK_SLOTS = ["scsi0:0", "sata0:0", "ide0:0"].map(&:freeze).freeze
 
         def self.set_default_disk_ext(machine)
           DEFAULT_DISK_EXT
@@ -112,7 +112,11 @@ module HashiCorp
         # @return [Hash, nil] - A hash of the current disk, nil if not found
         def self.get_disk(disk, all_disks)
           if disk.primary
-            return all_disks[PRIMARY_DISK_SLOT]
+            PRIMARY_DISK_SLOTS.each do |primary_slot|
+              disk_info = all_disks[primary_slot]
+              @@logger.debug("disk info for primary slot #{primary_slot} - #{disk_info}")
+              return disk_info if disk_info["present"].to_s.upcase == "TRUE"
+            end
           else
             if disk.type == :dvd
               all_disks.values.detect { |v| v["filename"] == disk.file }
@@ -153,7 +157,12 @@ module HashiCorp
 
             # disk.size is in bytes
             if disk.size > machine.provider.driver.get_disk_size(disk_path)
-              grow_disk(machine, disk_path, disk)
+              if disk.primary && machine.provider.driver.is_linked_clone?
+                machine.env.ui.warn(I18n.t("hashicorp.vagrant_vmware_desktop.disk_not_growing_linked_primary"))
+                @@logger.warn("Not growing primary disk - guest is linked clone")
+              else
+                grow_disk(machine, disk_path, disk)
+              end
             elsif disk.size < machine.provider.driver.get_disk_size(disk_path)
               machine.env.ui.warn(I18n.t("hashicorp.vagrant_vmware_desktop.disk_not_shrinking", path: disk.name))
               @@logger.warn("Not shrinking disk #{disk.name}")

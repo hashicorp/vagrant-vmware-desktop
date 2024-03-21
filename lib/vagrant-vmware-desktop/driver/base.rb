@@ -1189,6 +1189,32 @@ module HashiCorp
           disk_size
         end
 
+        # @return [Boolean] Instance is a linked clone
+        def is_linked_clone?
+          if @vmsd_path.nil?
+            @vm_dir.children(true).each do |child|
+              if child.basename.to_s.match(/\.vmsd$/)
+                @vmsd_path = child
+              end
+            end
+          end
+
+          return false if @vmsd_path.nil?
+
+          if @is_clone.nil?
+            @is_clone = false
+
+            File.readlines(@vmsd_path).each do |line|
+              if line.start_with?("cloneOf")
+                @is_clone = true
+                break
+              end
+            end
+          end
+
+          @is_clone
+        end
+
         protected
 
         # This reads the latest DHCP lease for a MAC address on the

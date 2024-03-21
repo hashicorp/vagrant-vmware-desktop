@@ -847,165 +847,166 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
         end
       end
     end
+  end
 
-    describe "#get_disks" do
-      let(:vmx_contents) do
-        "random0:0.maprootshare = \"TRUE\"\n" \
-        "ide0:0.devicetype = \"cdrom-raw\"\n" \
-        "ide0:0.filename = \"auto detect\"\n" \
-        "ide0:0.present = \"TRUE\"\n" \
-        "scsi0.present = \"TRUE\"\n" \
-        "scsi0:0.filename = \"disk-000018.vmdk\"\n" \
-        "scsi0:0.present = \"TRUE\"\n" \
-        "scsi0:1.filename = \"another_one.vmdk\"\n" \
-        "scsi0:1.present = \"TRUE\"\n"
-      end
-
-      it "returns all the devices of given type" do
-        expected = {
-          "random0:0"=>{"maprootshare"=>"TRUE"},
-          "scsi0:0"=>{"filename"=>"disk-000018.vmdk", "present"=>"TRUE"},
-          "scsi0:1"=>{"filename"=>"another_one.vmdk", "present"=>"TRUE"}
-        }
-        expect(instance.get_disks(["random", "scsi"])).to eq(expected)
-      end
+  describe "#get_disks" do
+    let(:vmx_contents) do
+      "random0:0.maprootshare = \"TRUE\"\n" \
+      "ide0:0.devicetype = \"cdrom-raw\"\n" \
+      "ide0:0.filename = \"auto detect\"\n" \
+      "ide0:0.present = \"TRUE\"\n" \
+      "scsi0.present = \"TRUE\"\n" \
+      "scsi0:0.filename = \"disk-000018.vmdk\"\n" \
+      "scsi0:0.present = \"TRUE\"\n" \
+      "scsi0:1.filename = \"another_one.vmdk\"\n" \
+      "scsi0:1.present = \"TRUE\"\n"
     end
 
-    describe "#remove_disk" do
-      let(:vmx) { double("vmx") }
+    it "returns all the devices of given type" do
+      expected = {
+        "random0:0"=>{"maprootshare"=>"TRUE"},
+        "scsi0:0"=>{"filename"=>"disk-000018.vmdk", "present"=>"TRUE"},
+        "scsi0:1"=>{"filename"=>"another_one.vmdk", "present"=>"TRUE"}
+      }
+      expect(instance.get_disks(["random", "scsi"])).to eq(expected)
+    end
+  end
 
-      let(:vmx_contents) do
-        "random0:0.maprootshare = \"TRUE\"\n" \
-        "ide0:0.devicetype = \"cdrom-raw\"\n" \
-        "ide0:0.filename = \"auto detect\"\n" \
-        "ide0:0.present = \"TRUE\"\n" \
-        "scsi0.present = \"TRUE\"\n" \
-        "scsi0:0.filename = \"disk-000018.vmdk\"\n" \
-        "scsi0:0.present = \"TRUE\"\n" \
-        "scsi0:1.filename = \"another_one.vmdk\"\n" \
-        "scsi0:1.present = \"TRUE\"\n"
-      end
+  describe "#remove_disk" do
+    let(:vmx) { double("vmx") }
 
-      before do
-        allow(vmx).to receive(:[]=)
-        allow(vmx).to receive(:keys).and_return([])
-        allow(instance).to receive(:vmx_modify).and_yield(vmx)
-      end
-
-      it "removes a disk" do
-        allow(File).to receive(:exist?).and_return(true)
-        expect(instance).to receive(:vdiskmanager)
-        expect(vmx).to receive(:delete).with("scsi0:1.filename")
-        expect(vmx).to receive(:delete).with("scsi0:1.present")
-        instance.remove_disk("another_one.vmdk")
-      end
-
-      it "gracefully handles non existent disk" do
-        allow(File).to receive(:exist?).and_return(false)
-        expect(instance).not_to receive(:vdiskmanager)
-        expect(vmx).not_to receive(:delete)
-        instance.remove_disk("oops.vmdk")
-      end
+    let(:vmx_contents) do
+      "random0:0.maprootshare = \"TRUE\"\n" \
+      "ide0:0.devicetype = \"cdrom-raw\"\n" \
+      "ide0:0.filename = \"auto detect\"\n" \
+      "ide0:0.present = \"TRUE\"\n" \
+      "scsi0.present = \"TRUE\"\n" \
+      "scsi0:0.filename = \"disk-000018.vmdk\"\n" \
+      "scsi0:0.present = \"TRUE\"\n" \
+      "scsi0:1.filename = \"another_one.vmdk\"\n" \
+      "scsi0:1.present = \"TRUE\"\n"
     end
 
-    describe "#get_disk_size" do
-      before do
-        allow(File).to receive(:exist?).and_return(true)
-      end
-
-      it "extracts disk size" do
-        allow(File).to receive(:foreach)
-          .and_yield("createType=\"monolithicSparse\"\n")
-          .and_yield("\n")
-          .and_yield("# Extent description\n")
-          .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
-          .and_yield("\n")
-          .and_yield("# The Disk Data Base\n")
-        expect(instance.get_disk_size("/some/path.vmdk")).to eq(2147483648)
-      end
-
-      it "sums disks size" do
-        allow(File).to receive(:foreach)
-          .and_yield("createType=\"monolithicSparse\"\n")
-          .and_yield("\n")
-          .and_yield("# Extent description\n")
-          .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
-          .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
-          .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
-          .and_yield("\n")
-          .and_yield("# The Disk Data Base\n")
-        expect(instance.get_disk_size("/some/path.vmdk")).to eq(6442450944)
-      end
-
-      it "gracefully handles non existent disk" do
-        allow(File).to receive(:exist?).and_return(false)
-        expect(instance.get_disk_size("/some/path/doesnt/exist.vmdk")).to eq(nil)
-      end
+    before do
+      allow(vmx).to receive(:[]=)
+      allow(vmx).to receive(:keys).and_return([])
+      allow(instance).to receive(:vmx_modify).and_yield(vmx)
     end
 
-    describe "#add_disk_to_vmx" do
-      let(:vmx) { double("vmx") }
-
-      before do
-        allow(vmx).to receive(:[]=)
-        allow(vmx).to receive(:keys).and_return([])
-        allow(instance).to receive(:vmx_modify).and_yield(vmx)
-      end
-
-      it "adds config to vmx file" do
-        expect(vmx).to receive(:[]=).with("ide0.present", "TRUE")
-        expect(vmx).to receive(:[]=).with("ide0:1.foo", "bar")
-        expect(vmx).to receive(:[]=).with("ide0:1.baz", "goo")
-        expect(vmx).to receive(:[]=).with("ide0:1.filename", "/some/file.txt")
-        expect(vmx).to receive(:[]=).with("ide0:1.present", "TRUE")
-        instance.add_disk_to_vmx("/some/file.txt", "ide0:1", {"foo"=>"bar", "baz"=>"goo"})
-      end
+    it "removes a disk" do
+      allow(File).to receive(:exist?).and_return(true)
+      expect(instance).to receive(:vdiskmanager)
+      expect(vmx).to receive(:delete).with("scsi0:1.filename")
+      expect(vmx).to receive(:delete).with("scsi0:1.present")
+      instance.remove_disk("another_one.vmdk")
     end
 
-    describe "#remove_disk_from_vmx" do
-      let(:vmx) { double("vmx") }
+    it "gracefully handles non existent disk" do
+      allow(File).to receive(:exist?).and_return(false)
+      expect(instance).not_to receive(:vdiskmanager)
+      expect(vmx).not_to receive(:delete)
+      instance.remove_disk("oops.vmdk")
+    end
+  end
 
-      let(:vmx_contents) do
-        "ide0:1.filename = \"/some/file.txt\"\n"
-      end
-
-      before do
-        allow(vmx).to receive(:[]=)
-        allow(vmx).to receive(:keys).and_return([])
-        allow(instance).to receive(:vmx_modify).and_yield(vmx)
-      end
-
-      it "adds config to vmx file" do
-        expect(vmx).to receive(:delete).with("ide0:1.foo")
-        expect(vmx).to receive(:delete).with("ide0:1.baz")
-        expect(vmx).to receive(:delete).with("ide0:1.filename")
-        expect(vmx).to receive(:delete).with("ide0:1.present")
-        instance.remove_disk_from_vmx("/some/file.txt", ["foo", "baz"])
-      end
+  describe "#get_disk_size" do
+    before do
+      allow(File).to receive(:exist?).and_return(true)
     end
 
-    describe "#snapshot_tree" do
-      let(:vmx) { double("vmx") }
+    it "extracts disk size" do
+      allow(File).to receive(:foreach)
+                       .and_yield("createType=\"monolithicSparse\"\n")
+                       .and_yield("\n")
+                       .and_yield("# Extent description\n")
+                       .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
+                       .and_yield("\n")
+                       .and_yield("# The Disk Data Base\n")
+      expect(instance.get_disk_size("/some/path.vmdk")).to eq(2147483648)
+    end
 
-      context "with a simple hierarchy of snapshots" do
-        let(:vmrun_result){ double(stdout: """Total snapshots: 10
+    it "sums disks size" do
+      allow(File).to receive(:foreach)
+                       .and_yield("createType=\"monolithicSparse\"\n")
+                       .and_yield("\n")
+                       .and_yield("# Extent description\n")
+                       .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
+                       .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
+                       .and_yield("RW 4194304 SPARSE \"another_one.vmdk\"\n")
+                       .and_yield("\n")
+                       .and_yield("# The Disk Data Base\n")
+      expect(instance.get_disk_size("/some/path.vmdk")).to eq(6442450944)
+    end
+
+    it "gracefully handles non existent disk" do
+      allow(File).to receive(:exist?).and_return(false)
+      expect(instance.get_disk_size("/some/path/doesnt/exist.vmdk")).to eq(nil)
+    end
+  end
+
+  describe "#add_disk_to_vmx" do
+    let(:vmx) { double("vmx") }
+
+    before do
+      allow(vmx).to receive(:[]=)
+      allow(vmx).to receive(:keys).and_return([])
+      allow(instance).to receive(:vmx_modify).and_yield(vmx)
+    end
+
+    it "adds config to vmx file" do
+      expect(vmx).to receive(:[]=).with("ide0.present", "TRUE")
+      expect(vmx).to receive(:[]=).with("ide0:1.foo", "bar")
+      expect(vmx).to receive(:[]=).with("ide0:1.baz", "goo")
+      expect(vmx).to receive(:[]=).with("ide0:1.filename", "/some/file.txt")
+      expect(vmx).to receive(:[]=).with("ide0:1.present", "TRUE")
+      instance.add_disk_to_vmx("/some/file.txt", "ide0:1", {"foo"=>"bar", "baz"=>"goo"})
+    end
+  end
+
+  describe "#remove_disk_from_vmx" do
+    let(:vmx) { double("vmx") }
+
+    let(:vmx_contents) do
+      "ide0:1.filename = \"/some/file.txt\"\n"
+    end
+
+    before do
+      allow(vmx).to receive(:[]=)
+      allow(vmx).to receive(:keys).and_return([])
+      allow(instance).to receive(:vmx_modify).and_yield(vmx)
+    end
+
+    it "adds config to vmx file" do
+      expect(vmx).to receive(:delete).with("ide0:1.foo")
+      expect(vmx).to receive(:delete).with("ide0:1.baz")
+      expect(vmx).to receive(:delete).with("ide0:1.filename")
+      expect(vmx).to receive(:delete).with("ide0:1.present")
+      instance.remove_disk_from_vmx("/some/file.txt", ["foo", "baz"])
+    end
+  end
+
+  describe "#snapshot_tree" do
+    let(:vmx) { double("vmx") }
+
+    context "with a simple hierarchy of snapshots" do
+      let(:vmrun_result){ double(stdout: """Total snapshots: 10
 Snapshot
 \tSnapshot 2
 \t\tSnapshot 3
 """) }
-        before do
-          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.to_s, "showTree").and_return(vmrun_result)
-        end
-
-        it "builds a snapshot tree" do
-          result = instance.snapshot_tree
-          expected_result = ["Snapshot", "Snapshot/Snapshot2", "Snapshot/Snapshot2/Snapshot3",]
-          expect(result == expected_result).to be_truthy
-        end
+      before do
+        expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.to_s, "showTree").and_return(vmrun_result)
       end
-     
-      context "with a complicated hierarchy of snapshots" do
-        let(:vmrun_result){ double(stdout: """Total snapshots: 10
+
+      it "builds a snapshot tree" do
+        result = instance.snapshot_tree
+        expected_result = ["Snapshot", "Snapshot/Snapshot2", "Snapshot/Snapshot2/Snapshot3",]
+        expect(result == expected_result).to be_truthy
+      end
+    end
+
+    context "with a complicated hierarchy of snapshots" do
+      let(:vmrun_result){ double(stdout: """Total snapshots: 10
 Snapshot
 \tSnapshot 2
 \t\tSnapshot 3
@@ -1016,18 +1017,53 @@ Snapshot
 \t\t\tSnapshot 8
 \t\t\t\tSnapshot 10
 \tSnapshot 9""") }
-        before do
-          expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.to_s, "showTree").and_return(vmrun_result)
-        end
+      before do
+        expect(instance).to receive(:vmrun).with("listSnapshots", vmx_file.to_s, "showTree").and_return(vmrun_result)
+      end
 
-        it "builds a snapshot tree" do
-          result = instance.snapshot_tree
-          expected_result = ["Snapshot", "Snapshot/Snapshot2", "Snapshot/Snapshot2/Snapshot3",
-            "Snapshot/Snapshot2/Snapshot3/Snapshot6", "Snapshot/Snapshot2/Snapshot4", 
-            "Snapshot/Snapshot5", "Snapshot/Snapshot5/Snapshot7", "Snapshot/Snapshot5/Snapshot7/Snapshot8",
-            "Snapshot/Snapshot5/Snapshot7/Snapshot8/Snapshot10", "Snapshot/Snapshot9"
-          ]
-          expect(result == expected_result).to be_truthy
+      it "builds a snapshot tree" do
+        result = instance.snapshot_tree
+        expected_result = ["Snapshot", "Snapshot/Snapshot2", "Snapshot/Snapshot2/Snapshot3",
+                           "Snapshot/Snapshot2/Snapshot3/Snapshot6", "Snapshot/Snapshot2/Snapshot4",
+                           "Snapshot/Snapshot5", "Snapshot/Snapshot5/Snapshot7", "Snapshot/Snapshot5/Snapshot7/Snapshot8",
+                           "Snapshot/Snapshot5/Snapshot7/Snapshot8/Snapshot10", "Snapshot/Snapshot9"
+                          ]
+        expect(result == expected_result).to be_truthy
+      end
+    end
+  end
+
+  describe "#is_linked_clone?" do
+    context "when disk metadata file does not exist" do
+      it "should return false" do
+        expect(instance.is_linked_clone?).to eq(false)
+      end
+    end
+
+    context "when disk metadata file exists" do
+      let(:disk_info_contents) { "" }
+
+      before do
+        File.write(@vmx_dir.join("testing.vmsd"), disk_info_contents)
+      end
+
+      context "when guest is not a linked clone" do
+        it "should return false" do
+          expect(instance.is_linked_clone?).to eq(false)
+        end
+      end
+
+      context "when guest is a linked clone" do
+        let(:disk_info_contents) {
+          '.encoding = "UTF-8"
+cloneOf0 = "/dev/null/disk.vmdk"
+numCloneOf = "1"
+sentinel0 = "disk-cl1.vmdk"
+numSentinels = "1"'
+        }
+
+        it "should return true" do
+          expect(instance.is_linked_clone?).to eq(true)
         end
       end
     end
