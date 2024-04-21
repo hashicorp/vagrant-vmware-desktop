@@ -586,8 +586,42 @@ module HashiCorp
         def read_ip(enable_vmrun_ip_lookup=true)
           @logger.info("Reading an accessible IP for machine...")
 
-          # NOTE: Read from DHCP leases first so we can attempt to fetch the address
-          # for the vmnet8 device first. If multiple networks are defined on the guest
+          if enable_vmrun_ip_lookup
+            # Try to read the IP using vmrun getGuestIPAddress. This
+            # won't work if the guest doesn't have guest tools installed or
+            # is using an old version of VMware.
+            begin
+              @logger.info("Trying vmrun getGuestIPAddress...")
+              result = vmrun("getGuestIPAddress", host_vmx_path)
+              result = result.stdout.chomp
+
+              # If returned address ends with a ".1" do not accept address
+              # and allow lookup via VMX.
+              # see: https://github.com/vmware/open-vm-tools/issues/93
+              if result.end_with?(".1")
+                @logger.warn("vmrun getGuestIPAddress returned: #{result}. Result resembles address retrieval from wrong " \
+                  "interface. Discarding value and proceeding with VMX based lookup.")
+                result = nil
+              else
+                # Try to parse the IP Address. This will raise an exception
+                # if it fails, which will halt our attempt to use it.
+                IPAddr.new(result)
+                @logger.info("vmrun getGuestIPAddress success: #{result}")
+                return result
+              end
+            rescue Errors::VMRunError
+              @logger.info("vmrun getGuestIPAddress failed: VMRunError")
+              # Ignore, try the MAC address way.
+            rescue IPAddr::InvalidAddressError
+              @logger.info("vmrun getGuestIPAddress failed: InvalidAddressError for #{result.inspect}")
+              # Ignore, try the MAC address way.
+            end
+          else
+            @logger.info("Skipping vmrun getGuestIPAddress as requested by config.")
+          end
+
+          # NOTE: Read from DHCP leases so we can attempt to fetch the address
+          # for the vmnet8 device. If multiple networks are defined on the guest
           # it will return the address of the last device, which will fail when doing
           # port forward lookups
 
@@ -628,39 +662,6 @@ module HashiCorp
             return dhcp_ip if dhcp_ip
           end
 
-          if enable_vmrun_ip_lookup
-            # Try to read the IP using vmrun getGuestIPAddress. This
-            # won't work if the guest doesn't have guest tools installed or
-            # is using an old version of VMware.
-            begin
-              @logger.info("Trying vmrun getGuestIPAddress...")
-              result = vmrun("getGuestIPAddress", host_vmx_path)
-              result = result.stdout.chomp
-
-              # If returned address ends with a ".1" do not accept address
-              # and allow lookup via VMX.
-              # see: https://github.com/vmware/open-vm-tools/issues/93
-              if result.end_with?(".1")
-                @logger.warn("vmrun getGuestIPAddress returned: #{result}. Result resembles address retrieval from wrong " \
-                  "interface. Discarding value and proceeding with VMX based lookup.")
-                result = nil
-              else
-                # Try to parse the IP Address. This will raise an exception
-                # if it fails, which will halt our attempt to use it.
-                IPAddr.new(result)
-                @logger.info("vmrun getGuestIPAddress success: #{result}")
-                return result
-              end
-            rescue Errors::VMRunError
-              @logger.info("vmrun getGuestIPAddress failed: VMRunError")
-              # Ignore, try the MAC address way.
-            rescue IPAddr::InvalidAddressError
-              @logger.info("vmrun getGuestIPAddress failed: InvalidAddressError for #{result.inspect}")
-              # Ignore, try the MAC address way.
-            end
-          else
-            @logger.info("Skipping vmrun getGuestIPAddress as requested by config.")
-          end
           nil
         end
 
