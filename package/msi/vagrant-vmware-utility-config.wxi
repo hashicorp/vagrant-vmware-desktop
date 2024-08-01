@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<Include>
+  <?define VersionNumber="%VERSION_NUMBER%" ?>
+  <?define BaseDirectory="%BASE_DIRECTORY%" ?>
+  <!--
+      NOTE: This upgrade code should _NOT_ be changed. This is
+      used to identify the Vagrant VMware Utility installer so
+      upgrades are properly handled as upgrades and not viewed
+      as a new installation which would result in file conflicts
+  -->
+  <?define UpgradeCode="e43b0f5f-e2fe-430a-9ac9-969860928b4a" ?>
+</Include>
