@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <!-- Include our wxi -->
+  <?include "vagrant-vmware-utility-config.wxi" ?>
+
+  <!-- The main product -->
+  <Product Id="*"
+           Language="!(loc.LANG)"
+           Name="!(loc.ProductName)"
+           Version="$(var.VersionNumber)"
+           Manufacturer="!(loc.ManufacturerName)"
+           UpgradeCode="$(var.UpgradeCode)">
+
+    <!-- Define the package information -->
+    <Package Compressed="yes"
+             InstallerVersion="200"
+             InstallPrivileges="elevated"
+             InstallScope="perMachine"
+             Manufacturer="!(loc.ManufacturerName)"
+             Platform="x64" />
+
+    <!-- Disallow installing older versions until the new version is removed -->
+    <!-- Note that this creates the RemoveExistingProducts action -->
+    <MajorUpgrade DowngradeErrorMessage="A later version of Vagrant VMware Utility is installed. Please remove this version first. Setup will now exit."
+                  Schedule="afterInstallInitialize" />
+
+    <!-- Check that VMware Workstation is installed -->
+    <Property Id="VMWAREINSTALLED">
+      <RegistrySearch Id="VMwareInstallSearch" Root="HKLM" Key="SOFTWARE\VMware, Inc.\VMware Workstation" Name="InstallPath" Type="raw" Win64="no" />
+    </Property>
+    <Condition Message="Vagrant VMware Utility requires a valid installation of VMware Workstation. Please install VMware Workstation and then run this installer again.">
+      VMWAREINSTALLED OR Installed
+    </Condition>
+
+    <!-- The source media for the installer -->
+    <Media Id="1"
+           Cabinet="VagrantVMwareUtility.cab"
+           CompressionLevel="high"
+           EmbedCab="yes" />
+
+     <!-- Require Windows NT Kernel -->
+     <Condition Message="This application is only supported on Windows 2000 or higher.">
+       <![CDATA[Installed or (VersionNT >= 500)]]>
+     </Condition>
+
+     <!-- Include application icon for add/remove programs -->
+     <Icon Id="icon.ico" SourceFile="$(var.BaseDirectory)\assets\vagrant.ico" />
+     <Property Id="ARPPRODUCTICON" Value="icon.ico" />
+     <Property Id="ARPHELPLINK" Value="https://www.vagrantup.com" />
+
+     <!-- The directory where we'll install the utility -->
+     <Directory Id="TARGETDIR" Name="SourceDir">
+       <Directory Id="ProgramFiles64Folder">
+         <Directory Id="INSTALLDIR" Name="VagrantVMwareUtility">
+           <Component Id="VagrantBin" Guid="05B947B5-7A8F-4AA1-9B76-A7844BF21BD4">
+             <CreateFolder />
+           </Component>
+         </Directory>
+       </Directory>
+     </Directory>
+
+     <!-- Define the features of our install -->
+     <Feature Id="VagrantFeature"
+              Title="!(loc.ProductName)"
+              Level="1">
+       <ComponentGroupRef Id="VagrantVMwareUtilityDir" />
+       <ComponentRef Id="VagrantBin" />
+     </Feature>
+
+     <!-- Define the installation UI as minimal -->
+     <UIRef Id="WixUI_Minimal" />
+
+     <WixVariable Id="WixUILicenseRtf" Value="$(var.BaseDirectory)\assets\license.rtf" />
+     <WixVariable Id="WixUIDialogBmp" Value="$(var.BaseDirectory)\assets\bg_dialog.bmp" />
+     <WixVariable Id="WixUIBannerBmp" Value="$(var.BaseDirectory)\assets\bg_banner.bmp" />
+     <!-- Install the Utility Windows service -->
+     <CustomAction Id="UtilityCertificateInstall"
+                   FileKey="filAD403B2949D17CD1DA10C7CA66DB5D96"
+                   ExeCommand="certificate generate"
+                   Execute="deferred"
+                   Impersonate="no"
+                   Return="ignore" />
+     <CustomAction Id="UtilityServiceInstall"
+                   FileKey="filAD403B2949D17CD1DA10C7CA66DB5D96"
+                   ExeCommand="service install"
+                   Execute="deferred"
+                   Impersonate="no"
+                   Return="ignore" />
+     <CustomAction Id="UtilityServiceUninstall"
+                   FileKey="filAD403B2949D17CD1DA10C7CA66DB5D96"
+                   ExeCommand="service uninstall"
+                   Execute="deferred"
+                   Impersonate="no"
+                   Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="UtilityCertificateInstall" Before="InstallFinalize" />
+      <Custom Action="UtilityServiceInstall" Before="InstallFinalize" />
+      <Custom Action="UtilityServiceUninstall" Before="RemoveFiles">
+        (NOT UPGRADINGPRODUCTCODE) AND (REMOVE="ALL")
+      </Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
