@@ -2,7 +2,7 @@
 
 csource="${BASH_SOURCE[0]}"
 while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
-root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+root="$( cd -P "$( dirname "$csource" )/../../" && pwd )"
 
 . "${root}/.ci/load-ci.sh"
 pushd "${root}"
@@ -24,7 +24,17 @@ chmod 0755 "${bin}" ||
     failure "Could not make bin file executable (${bin})"
 
 # Define the path to store the final package
-asset="${root}/pkg/vagrant-vmware-utility-${UTILITY_VERSION}-1.x86_64.rpm"
+asset="${root}/pkg/vagrant-vmware-utility_${UTILITY_VERSION}-1-x86_64.pkg.tar.zst"
+
+# The bsdtar command is required, so check that it is available. If not,
+# attempt to install it. If install is not possible, fail now.
+if ! command -v bsdtar > /dev/null 2>&1; then
+    if ! command -v apt-get > /dev/null 2>&1; then
+        failure "Missing required executable 'bsdtar' for building pacman package"
+    fi
+    wrap sudo apt-get install -yq libarchive-tools \
+        "Could not install libarchive-tools which provides required 'bsdtar' executable for building pacman package"
+fi
 
 # Create the final storage directory
 mkdir -p "${root}/pkg" || fail "Could not create ./pkg directory"
@@ -48,21 +58,13 @@ mkdir -p "${stage}/opt/vagrant-vmware-desktop/config" ||
     -config-write "${stage}/opt/vagrant-vmware-desktop/config/service.hcl" \
     -config-path "/opt/vagrant-vmware-desktop/config/service.hcl" \
     -exe-path "/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" \
-    -init-style "sysv" > "${init}/vagrant-vmware-utility.init" ||
-    fail "Failed to generate sysv init file"
-
-"${bin}" service install \
-    -print \
-    -config-write "${stage}/opt/vagrant-vmware-desktop/config/service.hcl" \
-    -config-path "/opt/vagrant-vmware-desktop/config/service.hcl" \
-    -exe-path "/opt/vagrant-vmware-desktop/bin/vagrant-vmware-utility" \
     -init-style "systemd" > "${init}/vagrant-vmware-utility.service" ||
     fail "Failed to generate systemd unit file"
 
 bundle exec fpm -p "${asset}" \
     -n vagrant-vmware-utility \
     -v "${UTILITY_VERSION}" \
-    -t rpm \
+    -t pacman \
     -s dir \
     -C "${stage}" \
     --log error \
@@ -74,9 +76,10 @@ bundle exec fpm -p "${asset}" \
     --vendor "HashiCorp" \
     --description "Vagrant utility for VMware Workstation and Player" \
     --config-files "opt/vagrant-vmware-desktop/config/service.hcl" \
-    --rpm-init "${init}/vagrant-vmware-utility.init" \
-    --rpm-auto-add-directories \
-    --rpm-user root \
-    --rpm-group root \
-    --after-install "${root}/package/common/after_install.sh" \
-    . || fail "Failed to create rpm package"
+    --after-install "${root}/package/pacman/after_install.sh" \
+    --before-upgrade "${root}/package/pacman/before_upgrade.sh" \
+    --after-upgrade "${root}/package/pacman/after_upgrade.sh" \
+    --before-remove "${root}/package/pacman/before_remove.sh" \
+    --pacman-user root \
+    --pacman-group root \
+    . || fail "Failed to create pacman package"

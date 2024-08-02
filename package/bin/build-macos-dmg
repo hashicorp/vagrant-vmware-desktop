@@ -9,7 +9,7 @@ fi
 
 csource="${BASH_SOURCE[0]}"
 while [ -h "$csource" ] ; do csource="$(readlink "$csource")"; done
-root="$( cd -P "$( dirname "$csource" )/../" && pwd )"
+root="$( cd -P "$( dirname "$csource" )/../../" && pwd )"
 
 . "${root}/.ci/load-ci.sh"
 pushd "${root}"
@@ -29,10 +29,10 @@ asset_name="vagrant-vmware-utility_${UTILITY_VERSION}_darwin_universal.dmg"
 # Check if we have the dmgbuild command available. If not,
 # install it now.
 if ! command -v dmgbuild > /dev/null 2>&1; then
-    pip3 install dmgbuild ||
+    pip3 install --break-system-packages dmgbuild ||
         fail "Failed to install dmgbuild"
     # biplist is required but not auto installed as a dependency
-    pip3 install biplist ||
+    pip3 install --break-system-packages biplist ||
         fail "Failed to install dmgbuild dependency library biplist"
 fi
 
