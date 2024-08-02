@@ -361,10 +361,8 @@ module HashiCorp
                 b3.use SetHostname
               end
 
-              Vagrant::Util::Experimental.guard_with(:disks) do
-                b3.use CleanupDisks
-                b3.use Disk
-              end
+              b3.use CleanupDisks
+              b3.use Disk
               b3.use VMXModify
               b3.use PrepareForwardedPortCollisionParams
               b3.use HandleForwardedPortCollisions
