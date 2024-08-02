@@ -27,7 +27,7 @@ jobs:
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_builder_repo_token;
             kv/data/github/hashicorp/vagrant-vmware-desktop-builder vagrant_vmware_desktop_repo_token;
       - name: Code Checkout
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           # NOTE: This is set so we can push the publish branch
           #       for the hashigems workflow. A custom token is
@@ -37,8 +37,8 @@ jobs:
           fetch-depth: 0
       - name: Install Ruby
         run: |
-          sudo apt-get update
-          sudo apt-get install -yq ruby
+          sudo DEBIAN_FRONTEND=noninteractive apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq ruby
         env:
           DEBIAN_FRONTEND: noninteractive
       - name: Build Vagrant VMware Desktop Plugin
@@ -54,7 +54,3 @@ jobs:
         env:
           PLUGIN_PATH: ${{ steps.build.outputs.gem-path }}
           RUBYGEMS_API_KEY: ${{ steps.secrets.outputs.rubygems_api_key }}
-      - name: Trigger Hashigems Publish
-        run: ./.ci/push-publish-branch
-        env:
-          PUBLISH_BRANCH: ${{ vars.HASHIGEMS_PUBLISH_BRANCH }}
