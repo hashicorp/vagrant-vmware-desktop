@@ -25,7 +25,3 @@ fi
 
 # Publish our gem
 publish_to_hashigems "${gem_path}"
-
-# Delete the trigger branch
-git push origin ":${ident_ref}" ||
-    warn "Failed to delete git branch (name: %s)" "${ident_ref}"

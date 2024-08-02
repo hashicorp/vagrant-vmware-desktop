@@ -37,8 +37,8 @@ jobs:
           fetch-depth: 0
       - name: Install Ruby
         run: |
-          sudo apt-get update
-          sudo apt-get install -yq ruby
+          sudo DEBIAN_FRONTEND=noninteractive apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq ruby
         env:
           DEBIAN_FRONTEND: noninteractive
       - name: Build Vagrant VMware Desktop Plugin
@@ -54,7 +54,3 @@ jobs:
         env:
           PLUGIN_PATH: ${{ steps.build.outputs.gem-path }}
           RUBYGEMS_API_KEY: ${{ steps.secrets.outputs.rubygems_api_key }}
-      - name: Trigger Hashigems Publish
-        run: ./.ci/push-publish-branch
-        env:
-          PUBLISH_BRANCH: ${{ vars.HASHIGEMS_PUBLISH_BRANCH }}
