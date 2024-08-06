@@ -11,6 +11,6 @@ func defaultUtilityLogger() hclog.Logger {
 	return hclog.New(
 		&hclog.LoggerOptions{
 			Output: hclog.DefaultOutput,
-			Level:  hclog.Error,
+			Level:  hclog.Debug,
 			Name:   "vagrant-vmware-utility-test"})
 }
