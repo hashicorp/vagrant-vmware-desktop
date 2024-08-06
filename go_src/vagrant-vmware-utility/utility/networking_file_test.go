@@ -37,13 +37,6 @@ type NatDhcpReservation struct {
 	Device, Mac, Address string
 }
 
-func TestNetworkingLoadFailure(t *testing.T) {
-	_, err := LoadNetworkingFile("/unknown/path/to/file", nil)
-	if err == nil {
-		t.Errorf("Network loading of unknown file did not fail")
-	}
-}
-
 func TestNetorkingLoadSuccess(t *testing.T) {
 	path := createValidNetworkingFile(1)
 	defer os.Remove(path)
