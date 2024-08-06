@@ -34,9 +34,10 @@ const MACOS_HOSTNAME_PATTERN = `(?im)name=(?P<hostname>[^\s]+)`
 const VMWARE_LEASE_FILE_PREFIX = "/var/db/vmware"
 
 type DhcpLeaseFile struct {
-	Path    string
-	Entries []*DhcpEntry
-	logger  hclog.Logger
+	Path         string
+	Entries      []*DhcpEntry
+	rejectedMACs map[string]struct{}
+	logger       hclog.Logger
 
 	timeF     string
 	leaseP    string
@@ -65,7 +66,7 @@ func (d *DhcpEntry) NormalizeMac() {
 			p[i] = "0" + p[i]
 		}
 	}
-	d.Mac = strings.Join(p, ":")
+	d.Mac = strings.ToLower(strings.Join(p, ":"))
 	return
 }
 
@@ -81,25 +82,27 @@ func LoadDhcpLeaseFile(path string, logger hclog.Logger) (leaseFile *DhcpLeaseFi
 	if strings.HasPrefix(path, "/var") && !strings.HasPrefix(path, VMWARE_LEASE_FILE_PREFIX) {
 		logger.Info("loading macOS style DHCP lease file", "path", path)
 		leaseFile = &DhcpLeaseFile{
-			Path:      path,
-			logger:    logger,
-			timeF:     MACOS_TIME_FORMAT,
-			leaseP:    MACOS_LEASE_PATTERN,
-			startP:    MACOS_START_PATTERN,
-			endP:      MACOS_END_PATTERN,
-			macP:      MACOS_MAC_PATTERN,
-			hostnameP: MACOS_HOSTNAME_PATTERN}
+			Path:         path,
+			rejectedMACs: map[string]struct{}{},
+			logger:       logger,
+			timeF:        MACOS_TIME_FORMAT,
+			leaseP:       MACOS_LEASE_PATTERN,
+			startP:       MACOS_START_PATTERN,
+			endP:         MACOS_END_PATTERN,
+			macP:         MACOS_MAC_PATTERN,
+			hostnameP:    MACOS_HOSTNAME_PATTERN}
 	} else {
 		logger.Info("loading VMware style DHCP lease file", "path", path)
 		leaseFile = &DhcpLeaseFile{
-			Path:      path,
-			logger:    logger,
-			timeF:     VMWARE_TIME_FORMAT,
-			leaseP:    VMWARE_LEASE_PATTERN,
-			startP:    VMWARE_START_PATTERN,
-			endP:      VMWARE_END_PATTERN,
-			macP:      VMWARE_MAC_PATTERN,
-			hostnameP: VMWARE_HOSTNAME_PATTERN}
+			Path:         path,
+			rejectedMACs: map[string]struct{}{},
+			logger:       logger,
+			timeF:        VMWARE_TIME_FORMAT,
+			leaseP:       VMWARE_LEASE_PATTERN,
+			startP:       VMWARE_START_PATTERN,
+			endP:         VMWARE_END_PATTERN,
+			macP:         VMWARE_MAC_PATTERN,
+			hostnameP:    VMWARE_HOSTNAME_PATTERN}
 	}
 	err = leaseFile.Load()
 	return leaseFile, err
@@ -163,6 +166,7 @@ func (d *DhcpLeaseFile) Load() error {
 }
 
 func (d *DhcpLeaseFile) IpForMac(mac string) (string, error) {
+	mac = strings.ToLower(mac)
 	for _, entry := range d.Entries {
 		if entry.Mac == mac {
 			return entry.Address, nil
@@ -228,6 +232,31 @@ func (d *DhcpLeaseFile) loadEntry(rawEntry map[string]string) error {
 		Expires:  endTime,
 	}
 	newEntry.NormalizeMac()
+
+	// Check if the entry is a rejected entry
+	if _, ok := d.rejectedMACs[newEntry.Mac]; ok {
+		return fmt.Errorf("Lease entry includes rejected MAC address")
+	}
+
+	// Before including the new entry, check existing entries for a
+	// MAC collision. If a collision is found, remove the existing
+	// entry, add the MAC to the rejected list, and return an error.
+	// Since it's possible to have two guests with same MAC address,
+	// there is no way to identify the correct address.
+	idx := -1
+	for i, checkEntry := range d.Entries {
+		if checkEntry.Mac == newEntry.Mac {
+			idx = i
+			break
+		}
+	}
+
+	if idx >= 0 {
+		d.Entries = append(d.Entries[0:idx], d.Entries[idx+1:]...)
+		d.rejectedMACs[newEntry.Mac] = struct{}{}
+		return fmt.Errorf("Multiple valid lease entries found for %s, rejecting", newEntry.Mac)
+	}
+
 	d.Entries = append(d.Entries, newEntry)
 	return nil
 }
