@@ -213,7 +213,7 @@ func (a *AdvancedDriver) LookupDhcpAddress(device, mac string) (addr string, err
 	}
 	paddr, err := leases.IpForMac(mac)
 	if err == nil {
-		return *paddr, err
+		return paddr, err
 	}
 	return a.vnetlib.LookupReservedAddress(device, mac)
 }

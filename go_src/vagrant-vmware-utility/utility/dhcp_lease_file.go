@@ -162,13 +162,13 @@ func (d *DhcpLeaseFile) Load() error {
 	return nil
 }
 
-func (d *DhcpLeaseFile) IpForMac(mac string) (*string, error) {
+func (d *DhcpLeaseFile) IpForMac(mac string) (string, error) {
 	for _, entry := range d.Entries {
 		if entry.Mac == mac {
-			return &entry.Address, nil
+			return entry.Address, nil
 		}
 	}
-	return nil, fmt.Errorf("No entry found for MAC %s", mac)
+	return "", fmt.Errorf("No entry found for MAC %s", mac)
 }
 
 func (d *DhcpLeaseFile) AddEntry(entry *DhcpEntry) error {
