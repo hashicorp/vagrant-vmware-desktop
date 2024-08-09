@@ -12,7 +12,7 @@ module HashiCorp
         @@logger = Log4r::Logger.new("hashicorp::provider::vmware::cap::disk")
 
         DEFAULT_DISK_EXT = "vmdk".freeze
-        BUS_TYPES = ["sata", "ide", "scsi"].map(&:freeze).freeze
+        BUS_TYPES = ["nvme", "sata", "ide", "scsi"].map(&:freeze).freeze
         DEFAULT_BUS = "scsi".freeze
         DEFAULT_DVD_BUS = "ide".freeze
         DEFAULT_DVD_DEVICE_TYPE = "cdrom-image"
