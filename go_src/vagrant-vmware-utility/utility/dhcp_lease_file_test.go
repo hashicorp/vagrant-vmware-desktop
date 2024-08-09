@@ -6,7 +6,6 @@ package utility
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"
@@ -83,7 +82,7 @@ func TestDhcpLookupFailure(t *testing.T) {
 	}
 	address, err := df.IpForMac("MAC:02")
 	if err == nil {
-		t.Errorf("Unexpected address for invalid MAC %s", *address)
+		t.Errorf("Unexpected address for invalid MAC %s", address)
 	}
 }
 
@@ -98,8 +97,8 @@ func TestDhcpLookupSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to receive address for valid MAC: %s", err)
 	}
-	if address != nil && *address != "127.0.2.1" {
-		t.Errorf("Received unexpected address 127.0.2.1 != %s", *address)
+	if address != "127.0.2.1" {
+		t.Errorf("Received unexpected address 127.0.2.1 != %s", address)
 	}
 }
 
@@ -114,8 +113,8 @@ func TestDhcpPartialLookupSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to receive address for valid MAC: %s", err)
 	}
-	if address != nil && *address != "127.0.2.1" {
-		t.Errorf("Received unexpected address 127.0.2.1 != %s", *address)
+	if address != "127.0.2.1" {
+		t.Errorf("Received unexpected address 127.0.2.1 != %s", address)
 	}
 }
 
@@ -132,8 +131,8 @@ func TestMacosDhcpLookupSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to receive address for valid MAC: %s base entry: %v", err, baseEntry)
 	}
-	if address != nil && *address != entries[0].Address {
-		t.Errorf("Received unexpected address %s != %s base entry: %v", baseEntry.Address, *address, baseEntry)
+	if address != entries[0].Address {
+		t.Errorf("Received unexpected address %s != %s base entry: %v", baseEntry.Address, address, baseEntry)
 	}
 }
 
@@ -146,7 +145,31 @@ func TestMacosDhcpLookupFailure(t *testing.T) {
 	}
 	address, err := df.IpForMac(generateMAC())
 	if err == nil {
-		t.Errorf("Unexpected address for invalid MAC %s", *address)
+		t.Errorf("Unexpected address for invalid MAC %s", address)
+	}
+}
+
+func TestDhcpLookupMultipleEntry(t *testing.T) {
+	entries := generateLeaseEntries(10)
+	invalidEntry := entries[8]
+	validEntry := entries[9]
+	// Match the mac address for both entries
+	invalidEntry.Mac = validEntry.Mac
+	// Set valid entry with more recent start time
+	location, _ := time.LoadLocation("UTC")
+	validEntry.StartTime = time.Now().In(location).
+		Add(time.Duration(-1) * time.Minute).Format(VMWARE_TIME_FORMAT)
+
+	path := createLeaseFile(entries)
+	defer os.Remove(path)
+	df, err := LoadDhcpLeaseFile(path, defaultUtilityLogger())
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load dhcp leases file: %s", err))
+	}
+
+	_, err = df.IpForMac(validEntry.Mac)
+	if err == nil {
+		t.Errorf("Expected not found error but received none")
 	}
 }
 
@@ -211,11 +234,29 @@ func generateMAC() string {
 }
 
 func generateMacosLeaseEntries(num int) (entries []*LeaseEntry) {
+	location, _ := time.LoadLocation("UTC")
+	now := time.Now().In(location)
 	for i := 1; i <= num; i++ {
+		var startTime time.Time
+		var endTime time.Time
+		switch i {
+		case 2:
+			startTime = now.Add(time.Duration(i) * time.Hour)
+			endTime = now.Add(time.Duration(i+1) * time.Hour)
+		case 3:
+			startTime = now.Add(time.Duration(-(i + 1)) * time.Hour)
+			endTime = now.Add(time.Duration(-i) * time.Hour)
+		default:
+			startTime = now.Add(time.Duration(-i) * time.Hour)
+			endTime = now.Add(time.Duration(i) * time.Hour)
+		}
+
 		entry := &LeaseEntry{
-			Address:  fmt.Sprintf("127.0.2.%d", i),
-			Mac:      generateMAC(),
-			Hostname: "vagrant",
+			Address:   fmt.Sprintf("127.0.2.%d", i),
+			Mac:       generateMAC(),
+			Hostname:  "vagrant",
+			StartTime: startTime.Format(MACOS_TIME_FORMAT),
+			EndTime:   endTime.Format(MACOS_TIME_FORMAT),
 		}
 		entries = append(entries, entry)
 	}
@@ -223,7 +264,7 @@ func generateMacosLeaseEntries(num int) (entries []*LeaseEntry) {
 }
 
 func createLeaseFile(leases []*LeaseEntry) string {
-	leaseFile, err := ioutil.TempFile("", "leases")
+	leaseFile, err := os.CreateTemp("", "leases")
 	if err != nil {
 		panic(fmt.Sprintf(
 			"Failed to create test dhcpd leases file: %s", err))
@@ -241,7 +282,7 @@ func createLeaseFile(leases []*LeaseEntry) string {
 }
 
 func createMacosLeaseFile(leases []*LeaseEntry) string {
-	leaseFile, err := ioutil.TempFile("", "leases")
+	leaseFile, err := os.CreateTemp("", "leases")
 	if err != nil {
 		panic(fmt.Sprintf(
 			"Failed to create test dhcpd leases file: %s", err))
@@ -259,7 +300,7 @@ func createMacosLeaseFile(leases []*LeaseEntry) string {
 }
 
 func createPartialLeaseFile(leases []*LeaseEntry) string {
-	leaseFile, err := ioutil.TempFile("", "leases")
+	leaseFile, err := os.CreateTemp("", "leases")
 	if err != nil {
 		panic(fmt.Sprintf(
 			"Failed to create test dhcpd leases file: %s", err))
