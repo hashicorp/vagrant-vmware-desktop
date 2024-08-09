@@ -1,5 +1,6 @@
 ## 3.0.4 (UNRELEASED)
 
+- Use lease for address lookup as fallback [[GH-121]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/121)
 - Remove experimental guards on disk capabilities [[GH-112]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/112)
 - Fix resizing of primary disk [[GH-112]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/112)
 - Properly handle empty mount options [[GH-97]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/97)
