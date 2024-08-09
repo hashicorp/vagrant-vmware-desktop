@@ -103,7 +103,7 @@ func (s *SimpleDriver) LookupDhcpAddress(device, mac string) (addr string, err e
 	}
 	paddr, err := leases.IpForMac(mac)
 	if err == nil {
-		return *paddr, err
+		return paddr, err
 	}
 	netF, err := s.LoadNetworkingFile()
 	if err != nil {
