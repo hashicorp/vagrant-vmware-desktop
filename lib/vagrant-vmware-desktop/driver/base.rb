@@ -592,7 +592,7 @@ module HashiCorp
             # is using an old version of VMware.
             begin
               @logger.info("Trying vmrun getGuestIPAddress...")
-              result = vmrun("getGuestIPAddress", host_vmx_path)
+              result = vmrun("getGuestIPAddress", host_vmx_path, "-wait", {timeout: 10})
               result = result.stdout.chomp
 
               # If returned address ends with a ".1" do not accept address
