@@ -1,4 +1,9 @@
 <?xml version="1.0"?>
+<!--
+ Copyright (c) HashiCorp, Inc.
+ SPDX-License-Identifier: MPL-2.0
+-->
+
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
   <!-- Include our wxi -->
   <?include "vagrant-vmware-utility-config.wxi" ?>
