@@ -488,6 +488,15 @@ en:
           The VMware product does not support IPv6 in a robust way like other
           Vagrant providers. This is not a bug in Vagrant - the upstream
           provider does not provide robust support for IPv6.
+        vmcancel_error: |-
+          An error occurred causing VMware to cancel the current operation. Details
+          of the error causing the cancelation:
+
+          %{error}
+
+          The full log can be located at:
+
+          %{vmware_log_path}
         vmexec_error: |-
           An error occurred while executing `%{executable}`, a utility for controlling
           VMware machines. The command and output are below:
