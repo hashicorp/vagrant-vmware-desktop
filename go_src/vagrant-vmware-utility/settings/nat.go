@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"sync"
@@ -110,14 +109,20 @@ func (n *NAT) Reload() error {
 		return nil
 	}
 	var info NatInfo
-	data, err := ioutil.ReadFile(n.Path)
+	data, err := os.ReadFile(n.Path)
 	if err != nil {
 		n.logger.Error("failed to read nat file", "error", err, "path", n.Path)
 		return err
 	}
 	if err := json.Unmarshal(data, &info); err != nil {
 		n.logger.Error("failed to load nat data", "error", err)
-		return err
+		if renameErr := os.Rename(n.Path, n.Path+".invalid"); renameErr != nil {
+			n.logger.Error("failed to move invalid nat settings file", "error", renameErr)
+			return err
+		}
+		n.logger.Warn("moved invalid nat settings file, clearing", "invalid-path", n.Path+".invalid")
+
+		return nil
 	}
 	n.info = info
 	return nil
@@ -137,7 +142,7 @@ func (n *NAT) Save() error {
 		n.logger.Error("failed to dump nat data", "error", err)
 		return err
 	}
-	f, err := ioutil.TempFile(path.Dir(n.Path), "nat")
+	f, err := os.CreateTemp(path.Dir(n.Path), "nat")
 	if err != nil {
 		n.logger.Error("failed to create file", "error", err, "path", f.Name())
 		return err
