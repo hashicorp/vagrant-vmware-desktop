@@ -263,6 +263,10 @@ module HashiCorp
         error_key(:vmnet_no_ipv6)
       end
 
+      class VMCancelError < Base
+        error_key(:vmcancel_error)
+      end
+
       class VMExecError < Base
         error_key(:vmexec_error)
       end
