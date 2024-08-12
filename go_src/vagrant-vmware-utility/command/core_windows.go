@@ -4,7 +4,7 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func platformSpecificCommands(name string, ui cli.Ui, cmds map[string]cli.CommandFactory) {
