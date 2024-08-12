@@ -1,5 +1,6 @@
 ## 1.0.23 (Unreleased)
 
+- Update license check to prevent downgrade [[GH-125]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/125)
 - Fix lease lookup behavior with multiple matches [[GH-120]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/120)
 
 ## 1.0.22 (May 5, 2023)
