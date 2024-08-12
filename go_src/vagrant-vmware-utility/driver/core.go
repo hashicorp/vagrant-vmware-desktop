@@ -35,6 +35,7 @@ func (v *VmwareInfo) IsProfessional() bool {
 	if v.License == "standard" {
 		return false
 	}
+
 	// Now we need to check if we are using a product that
 	// is a professional version. These include Workstation
 	// and Fusion (but not player)
@@ -43,13 +44,7 @@ func (v *VmwareInfo) IsProfessional() bool {
 		!strings.Contains(v.License, "ws") {
 		return false
 	}
-	// Even though we have a product that supports professional
-	// licensing, it may still be a standard license. The standard
-	// license appears to be flagged by the `vl` value, so check
-	// for that string
-	if strings.Contains(v.License, "vl") {
-		return false
-	}
+
 	return true
 }
 
