@@ -1298,6 +1298,10 @@ module HashiCorp
               end
               result = Vagrant::Util::Subprocess.execute(r_path, *command)
               if result.exit_code != 0
+                if result.stdout.include?("operation was canceled") || result.stderr.include?("operation was canceled")
+                  raise_canceled_error!
+                end
+
                 raise Errors::VMExecError,
                   :executable => executable.to_s,
                   :command => command.inspect,
@@ -1379,7 +1383,6 @@ module HashiCorp
           end
         end
 
-
         # This performs common cleanup tasks on a cloned machine.
         def clone_cleanup(destination_vmx)
           destination = destination_vmx.parent
@@ -1405,6 +1408,45 @@ module HashiCorp
 
           # Return the destination VMX file
           destination_vmx
+        end
+
+        # Attempts to extract cause of a vmware canceled operation
+        # by inspecting the vmware.log file for failure information.
+        # If found, an exception will be raised. Otherwise, nothing
+        # will be raised.
+        def raise_canceled_error!
+          vmware_log = @vm_dir.join("vmware.log")
+          return if !vmware_log.exist?
+          error_lines = []
+          found = false
+          File.open(vmware_log.to_s) do |file|
+            until file.eof?
+              line = file.readline.chomp
+              if found
+                break if line.include?("-----------------")
+                error_lines << line
+                next
+              end
+
+              if line.include?("Msg_Post: Error")
+                found = true
+              end
+            end
+          end
+
+          # If error content wasn't found, just return
+          return if !found
+
+          # If the size of the content is unreasonably large, just return
+          return if error_lines.size > 10
+
+          error_lines.map! do |line|
+            line.sub(/^.*? vmx \[.*?\] /, "")
+          end
+
+          raise Errors::VMCancelError,
+            error: error_lines.join("\n"),
+            vmware_log_path: vmware_log.to_s
         end
 
         # Display warning message about allowlisted VMX ethernet settings
