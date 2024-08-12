@@ -7,8 +7,8 @@ import (
 	"flag"
 	"path/filepath"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/utility"
-	"github.com/mitchellh/cli"
 )
 
 type CertificateGenerateCommand struct {

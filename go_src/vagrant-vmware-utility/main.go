@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/command"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/util"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/version"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // Available commands

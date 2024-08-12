@@ -7,7 +7,7 @@ import (
 	"flag"
 	"runtime"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 type ServiceUninstallCommand struct {

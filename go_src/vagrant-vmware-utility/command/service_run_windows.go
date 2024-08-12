@@ -7,8 +7,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/cli"
 	hclog "github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/cli"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/eventlog"
 )
