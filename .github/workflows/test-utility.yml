@@ -13,6 +13,7 @@ on:
 
 jobs:
   tests:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
     runs-on: ubuntu-latest
     name: Vagrant VMware Utility Tests
     steps:

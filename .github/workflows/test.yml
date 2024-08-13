@@ -15,6 +15,7 @@ on:
 
 jobs:
   unit-tests:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop'
     runs-on: ubuntu-latest
     strategy:
       matrix:
