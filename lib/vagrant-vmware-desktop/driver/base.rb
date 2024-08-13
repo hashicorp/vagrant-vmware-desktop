@@ -592,7 +592,7 @@ module HashiCorp
             # is using an old version of VMware.
             begin
               @logger.info("Trying vmrun getGuestIPAddress...")
-              result = vmrun("getGuestIPAddress", host_vmx_path, "-wait", {timeout: 10})
+              result = vmrun("getGuestIPAddress", host_vmx_path, "-wait", {timeout: 10, retryable: true})
               result = result.stdout.chomp
 
               # If returned address ends with a ".1" do not accept address
@@ -611,6 +611,9 @@ module HashiCorp
               end
             rescue Errors::VMRunError
               @logger.info("vmrun getGuestIPAddress failed: VMRunError")
+              # Ignore, try the MAC address way.
+            rescue Vagrant::Util::Subprocess::TimeoutExceeded
+              @logger.info("vmrun getGuestIPAddress failed: TimeoutExceeded")
               # Ignore, try the MAC address way.
             rescue IPAddr::InvalidAddressError
               @logger.info("vmrun getGuestIPAddress failed: InvalidAddressError for #{result.inspect}")
