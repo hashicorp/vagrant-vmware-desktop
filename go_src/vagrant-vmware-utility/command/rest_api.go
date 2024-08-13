@@ -9,11 +9,11 @@ import (
 	"flag"
 	"sync"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/driver"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/server"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/util"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/utility"
-	"github.com/mitchellh/cli"
 )
 
 var Shutdown sync.Cond
