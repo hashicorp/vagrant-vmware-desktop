@@ -4,8 +4,7 @@ on:
       - main
       - 'test-*'
     paths:
-      - 'lib/**'
-      - 'spec/**'
+      - 'go_src/**'
   pull_request:
     branches:
       - main
@@ -15,9 +14,6 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        ruby: [ '3.1', '3.2', '3.3' ]
     name: Vagrant VMware Utility Tests
     steps:
       - name: Code Checkout
