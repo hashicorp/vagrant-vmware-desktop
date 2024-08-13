@@ -1,3 +1,5 @@
+## 3.0.5 (UNRELEASED)
+
 ## 3.0.4 (August 13, 2024)
 
 - Attempt error extraction on canceled operations [[GH-123]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/123)
