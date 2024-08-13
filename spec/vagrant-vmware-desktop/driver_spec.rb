@@ -338,7 +338,7 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
     let(:vmrun_result){ double(stdout: guest_ip) }
     context "with vmrun ip lookup enabled" do
       before do
-        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.to_s, "-wait", {timeout: 10}).and_return(vmrun_result)
+        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.to_s, "-wait", {retryable: true, timeout: 10}).and_return(vmrun_result)
       end
 
       it "should return guest IP via vmrun command" do
@@ -385,7 +385,7 @@ describe HashiCorp::VagrantVMwareDesktop::Driver::Base do
 
       before do
         expect(instance).to receive(:read_dhcp_lease).with("vmnet8", mac).and_return(guest_ip)
-        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.to_s, "-wait", {timeout: 10}).and_return(vmrun_result)
+        expect(instance).to receive(:vmrun).with("getGuestIPAddress", vmx_file.to_s, "-wait", {retryable: true, timeout: 10}).and_return(vmrun_result)
       end
 
       it "should discard vmrun IP result and perform DHCP lookup" do
