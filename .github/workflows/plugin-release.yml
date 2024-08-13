@@ -4,9 +4,9 @@ on:
       - 'desktop-v*'
 
 jobs:
-  release:
+  rubygems-release:
     if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
-    name: Vagrant VMware Desktop Plugin Release
+    name: Vagrant VMware Desktop RubyGems Release
     runs-on: ['self-hosted', 'ondemand', 'linux', 'type=t3.small']
     permissions:
       id-token: write
@@ -29,18 +29,11 @@ jobs:
       - name: Code Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          # NOTE: This is set so we can push the publish branch
-          #       for the hashigems workflow. A custom token is
-          #       used since the auto-generated token won't trigger
-          #       a workflow run
-          token: ${{ steps.secrets.outputs.vagrant_vmware_desktop_builder_repo_token }}
           fetch-depth: 0
-      - name: Install Ruby
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq ruby
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@a6e6f86333f0a2523ece813039b8b4be04560854 # v1.190.0
+        with:
+          ruby-version: ruby
       - name: Build Vagrant VMware Desktop Plugin
         id: build
         run: ./.ci/build-plugin
@@ -54,3 +47,30 @@ jobs:
         env:
           PLUGIN_PATH: ${{ steps.build.outputs.gem-path }}
           RUBYGEMS_API_KEY: ${{ steps.secrets.outputs.rubygems_api_key }}
+  hashigems-release:
+    if: github.repository == 'hashicorp/vagrant-vmware-desktop-builder'
+    name: Vagrant VMware Desktop HashiGems Release
+    needs: [rubygems-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Fetch Release RubyGem
+        id: fetch
+        run: ./.ci/download-release-plugin
+      - name: Doormat Configuration
+        uses: hashicorp/doormat-action@v1
+        with:
+          aws-role-arn: ${{ vars.HASHIGEMS_DOORMAT_ROLE_ARN }}
+      - name: Configure AWS
+        run: aws sts get-caller-identity
+      - name: Release Vagrant VMware Desktop Plugin
+        run: ./.ci/release-hashigems "${PLUGIN_PATH}"
+        env:
+          PLUGIN_PATH: ${{ steps.fetch.outputs.plugin-path }}
+          HASHIGEMS_METADATA_BUCKET: ${{ vars.HASHIGEMS_METADATA_BUCKET }}
+          HASHIGEMS_PUBLIC_BUCKET: ${{ vars.HASHIGEMS_PUBLIC_BUCKET }}
+          HASHIGEMS_CLOUDFRONT_ID: ${{ vars.HASHIGEMS_DISTRIBUTION_ID }}
