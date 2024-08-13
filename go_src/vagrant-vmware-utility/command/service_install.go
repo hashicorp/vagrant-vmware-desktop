@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/vagrant-vmware-desktop/go_src/vagrant-vmware-utility/utility"
-	"github.com/mitchellh/cli"
 )
 
 const RUNIT_DIR = "/etc/sv"

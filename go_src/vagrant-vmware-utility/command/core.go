@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcl/v2/hclsimple"
-	"github.com/mitchellh/cli"
 )
 
 type ForceExit struct {
