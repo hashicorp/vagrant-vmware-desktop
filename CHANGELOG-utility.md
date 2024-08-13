@@ -1,4 +1,4 @@
-## 1.0.23 (Unreleased)
+## 1.0.23 (August 13, 2024)
 
 - Recover from invalid NAT settings file [[GH-124]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/124)
 - Update license check to prevent downgrade [[GH-125]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/125)
