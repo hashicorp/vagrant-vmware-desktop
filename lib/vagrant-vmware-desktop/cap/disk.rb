@@ -17,7 +17,7 @@ module HashiCorp
         DEFAULT_DVD_BUS = "ide".freeze
         DEFAULT_DVD_DEVICE_TYPE = "cdrom-image"
         # Adapter types (from vmware-vdiskmanager -h)
-        DISK_ADAPTER_TYPES = ["ide", "buslogic", "lsilogic"].map(&:freeze).freeze
+        DISK_ADAPTER_TYPES = ["ide", "buslogic", "lsilogic", "pvscsi"].map(&:freeze).freeze
         DEFAULT_ADAPTER_TYPE = "lsilogic".freeze
         # Disk types (from vmware-vdiskmanager -h)
         # 0 : single growable virtual disk
@@ -184,9 +184,9 @@ module HashiCorp
           if disk.provider_config && disk.provider_config.key?(:vmware_desktop)
             disk_provider_config = disk.provider_config[:vmware_desktop]
             if !BUS_TYPES.include?(disk_provider_config[:bus_type])
+              @@logger.warn("#{disk_provider_config[:bus_type]} is not valid. Should be one of " \
+                "#{BUS_TYPES.join(', ')}. Setting bus type to #{DEFAULT_DVD_BUS}")
               disk_provider_config[:bus_type] = DEFAULT_DVD_BUS
-              @@logger.warn("#{disk_provider_config[:bus_type]} is not a valid. Should be one of " \
-                "#{BUS_TYPES.join(', ')}! Setting adapter type to #{DEFAULT_DVD_BUS}")
             end
           end
 
@@ -213,18 +213,18 @@ module HashiCorp
             # Create a new disk if a file is not provided, or that path does not exist
             disk_filename = "#{disk_config.name}.#{disk_config.disk_ext}"
             disk_provider_config = {}
-
             if disk_config.provider_config && disk_config.provider_config.key?(:vmware_desktop)
               disk_provider_config = disk_config.provider_config[:vmware_desktop]
+
               if !DISK_ADAPTER_TYPES.include?(disk_provider_config[:adapter_type])
+                @@logger.warn("#{disk_provider_config[:adapter_type]} is not valid. Should be one " \
+                  "of #{DISK_ADAPTER_TYPES.join(', ')}. Setting adapter type to #{DEFAULT_ADAPTER_TYPE}")
                 disk_provider_config[:adapter_type] = DEFAULT_ADAPTER_TYPE
-                @@logger.warn("#{disk_provider_config[:adapter_type]} is not a valid. Should be one " \
-                  "of #{DISK_ADAPTER_TYPES.join(', ')}! Setting adapter type to #{DEFAULT_ADAPTER_TYPE}")
               end
               if !BUS_TYPES.include?(disk_provider_config[:bus_type])
+                @@logger.warn("#{disk_provider_config[:bus_type]} is not valid. Should be one of " \
+                  "#{BUS_TYPES.join(', ')}. Setting bus type to #{DEFAULT_BUS}")
                 disk_provider_config[:bus_type] = DEFAULT_BUS
-                @@logger.warn("#{disk_provider_config[:bus_type]} is not a valid. Should be one of " \
-                  "#{BUS_TYPES.join(', ')}! Setting adapter type to #{DEFAULT_BUS}")
               end
             end
             disk_type = DEFAULT_DISK_TYPE
