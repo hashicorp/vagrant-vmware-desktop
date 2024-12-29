@@ -28,7 +28,7 @@ module HashiCorp
         # 5 : compressed disk optimized for streaming
         # 6 : thin provisioned virtual disk - ESX 3.x and above
         DEFAULT_DISK_TYPE = 0.freeze
-        PRIMARY_DISK_SLOTS = ["scsi0:0", "sata0:0", "ide0:0"].map(&:freeze).freeze
+        PRIMARY_DISK_SLOTS = ["nvme0:0", "scsi0:0", "sata0:0", "ide0:0"].map(&:freeze).freeze
 
         def self.set_default_disk_ext(machine)
           DEFAULT_DISK_EXT
@@ -115,8 +115,9 @@ module HashiCorp
             PRIMARY_DISK_SLOTS.each do |primary_slot|
               disk_info = all_disks[primary_slot]
               @@logger.debug("disk info for primary slot #{primary_slot} - #{disk_info}")
-              return disk_info if disk_info["present"].to_s.upcase == "TRUE"
+              return disk_info if !disk_info.nil? && disk_info["present"].to_s.upcase == "TRUE"
             end
+            nil
           else
             if disk.type == :dvd
               all_disks.values.detect { |v| v["filename"] == disk.file }
