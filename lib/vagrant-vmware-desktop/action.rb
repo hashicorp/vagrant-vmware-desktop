@@ -329,7 +329,7 @@ module HashiCorp
 
           b.use Call, Running do |env, b2|
             if env[:result]
-              b2.use MessageAlreadyRunning
+              b2.use action_provision
               next
             end
 
