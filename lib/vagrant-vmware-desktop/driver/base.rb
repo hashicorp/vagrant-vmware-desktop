@@ -944,10 +944,10 @@ module HashiCorp
         # This will start the VMware machine.
         def start(gui=false)
           gui_arg = gui ? "gui" : "nogui"
-          vmrun("start", host_vmx_path, gui_arg, retryable: true, timeout: 45)
+          vmrun("start", host_vmx_path, gui_arg, retryable: true, timeout: 300)
         rescue Vagrant::Util::Subprocess::TimeoutExceeded
           # Sometimes vmrun just hangs. We give it a generous timeout
-          # of 45 seconds, and then throw this.
+          # of 5 minutes, and then throw this.
           raise Errors::StartTimeout
         end
 
