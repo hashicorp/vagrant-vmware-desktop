@@ -47,6 +47,10 @@ module HashiCorp
         error_key(:disk_not_resized_snapshot)
       end
 
+      class DiskPrimaryMissing < Base
+        error_key(:disk_primary_missing)
+      end
+
       class MissingNATDevice < Base
         error_key(:missing_nat_device)
       end

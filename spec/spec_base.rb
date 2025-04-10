@@ -36,3 +36,4 @@ I18n.load_path << File.expand_path("../../locales/en.yml", __FILE__)
 I18n.reload!
 
 require "vagrant-vmware-desktop"
+HashiCorp::VagrantVMwareDesktop.init_i18n

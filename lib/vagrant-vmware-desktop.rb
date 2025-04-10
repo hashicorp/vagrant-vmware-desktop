@@ -19,11 +19,15 @@ module HashiCorp
       "vagrant-vmware-workstation"
     ].map(&:freeze).freeze
 
-    lib_path = Pathname.new(File.expand_path("../vagrant-vmware-desktop", __FILE__))
-    autoload :Action, lib_path.join("action")
-    autoload :Driver, lib_path.join("driver")
-    autoload :Errors, lib_path.join("errors")
-    autoload :SudoHelper, lib_path.join("sudo_helper")
+    autoload :Action, "vagrant-vmware-desktop/action"
+    autoload :Cap, "vagrant-vmware-desktop/cap"
+    autoload :CheckpointClient, "vagrant-vmware-desktop/checkpoint_client"
+    autoload :Config, "vagrant-vmware-desktop/config"
+    autoload :Driver, "vagrant-vmware-desktop/driver"
+    autoload :Errors, "vagrant-vmware-desktop/errors"
+    autoload :Provider, "vagrant-vmware-desktop/provider"
+    autoload :SetupPlugin, "vagrant-vmware-desktop/setup_plugin"
+    autoload :SyncedFolder, "vagrant-vmware-desktop/synced_folder"
 
     # This initializes the i18n load path so that the plugin-specific
     # translations work.

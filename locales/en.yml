@@ -192,6 +192,8 @@ en:
           disk please remove snapshots associated with the VM.
 
           Path: %{path}
+        disk_primary_missing: |-
+          Failed to locate the primary disk for the guest.
         destroy_invalid_state: |-
           The VMware machine cannot be destroyed beacuse it is still
           running. Please make sure the machine is properly halted before
