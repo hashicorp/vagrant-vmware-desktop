@@ -114,9 +114,12 @@ module HashiCorp
           if disk.primary
             PRIMARY_DISK_SLOTS.each do |primary_slot|
               disk_info = all_disks[primary_slot]
-              @@logger.debug("disk info for primary slot #{primary_slot} - #{disk_info}")
-              return disk_info if !disk_info.nil? && disk_info["present"].to_s.upcase == "TRUE"
+              if disk_info
+                @@logger.debug("disk info for primary slot #{primary_slot} - #{disk_info}")
+                return disk_info if disk_info["present"].to_s.upcase == "TRUE"
+              end
             end
+
             nil
           else
             if disk.type == :dvd
@@ -143,6 +146,8 @@ module HashiCorp
           current_disk = get_disk(disk, attached_disks)
 
           if current_disk.nil?
+            raise Errors::DiskPrimaryMissing if disk.primary
+
             disk_path = create_disk(machine, disk, attached_disks)
           else
             # If the path matches the disk name + some extra characters then
