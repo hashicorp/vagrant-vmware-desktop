@@ -4,8 +4,6 @@
 require_relative "../../spec_base"
 require "vagrant"
 
-require "vagrant-vmware-desktop/cap/disk"
-
 describe HashiCorp::VagrantVMwareDesktop::Cap::Disk do
   let(:driver) { double("driver", 'is_linked_clone?': linked_clone) }
   let(:linked_clone) { false }
@@ -122,6 +120,113 @@ describe HashiCorp::VagrantVMwareDesktop::Cap::Disk do
             disk_ext: "vmdk", file: "#{vm_path}/disk2.vmdk", provider_config: {vmware_desktop: {bus_type: "ide"}}),
         ]
         described_class.configure_disks(machine, disks)
+      end
+    end
+
+    context "configuring primary disks" do
+      let(:primary_disk_path) { "#{vm_path}/vagrant_primary.vmdk" }
+      let(:defined_disks) {
+        [
+          double("disk", id: "12345", name: "vagrant_primary", size: 196608, primary: true,
+                 type: :disk, disk_ext: "vmdk", file: primary_disk_path),
+        ]
+      }
+
+      before do
+        allow(driver).to receive(:snapshot_list).and_return([])
+        allow(driver).to receive(:get_disk_size).with(primary_disk_path).and_return(19660)
+      end
+
+      context "scsi disk" do
+        before do
+          allow(driver).to receive(:get_disks).and_return(
+            {
+              "scsi0:0" => {
+                "filename" => File.basename("vagrant_primary.vmdk"),
+                "present" => "TRUE",
+                "redo" => ""
+              },
+            }
+          )
+        end
+
+        it "grows the disk" do
+          expect(driver).to receive(:grow_disk).exactly(1)
+          configured_disks = described_class.configure_disks(machine, defined_disks)
+          expect(configured_disks[:disk].map { |d| d.flatten.any?(nil) }.any?(true)).to be(false)
+        end
+      end
+
+      context "sata disk" do
+        before do
+          allow(driver).to receive(:get_disks).and_return(
+            {
+              "sata0:0" => {
+                "filename" => File.basename("vagrant_primary.vmdk"),
+                "present" => "TRUE",
+                "redo" => ""
+              },
+            }
+          )
+        end
+
+        it "grows the disk" do
+          expect(driver).to receive(:grow_disk).exactly(1)
+          configured_disks = described_class.configure_disks(machine, defined_disks)
+          expect(configured_disks[:disk].map { |d| d.flatten.any?(nil) }.any?(true)).to be(false)
+        end
+      end
+
+      context "ide disk" do
+        before do
+          allow(driver).to receive(:get_disks).and_return(
+            {
+              "ide0:0" => {
+                "filename" => File.basename("vagrant_primary.vmdk"),
+                "present" => "TRUE",
+                "redo" => ""
+              },
+            }
+          )
+        end
+
+        it "grows the disk" do
+          expect(driver).to receive(:grow_disk).exactly(1)
+          configured_disks = described_class.configure_disks(machine, defined_disks)
+          expect(configured_disks[:disk].map { |d| d.flatten.any?(nil) }.any?(true)).to be(false)
+        end
+      end
+
+      context "nvme disk" do
+        before do
+          allow(driver).to receive(:get_disks).and_return(
+            {
+              "nvme0:0" => {
+                "filename" => File.basename("vagrant_primary.vmdk"),
+                "present" => "TRUE",
+                "redo" => ""
+              },
+            }
+          )
+        end
+
+        it "grows the disk" do
+          expect(driver).to receive(:grow_disk).exactly(1)
+          configured_disks = described_class.configure_disks(machine, defined_disks)
+          expect(configured_disks[:disk].map { |d| d.flatten.any?(nil) }.any?(true)).to be(false)
+        end
+      end
+
+      context "no matching disk" do
+        before do
+          allow(driver).to receive(:get_disks).and_return({})
+        end
+
+        it "raises error missing primary disk" do
+          expect {
+            described_class.configure_disks(machine, defined_disks)
+          }.to raise_error(HashiCorp::VagrantVMwareDesktop::Errors::DiskPrimaryMissing)
+        end
       end
     end
 
