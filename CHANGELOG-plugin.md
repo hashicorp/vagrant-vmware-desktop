@@ -1,5 +1,7 @@
 ## 3.0.5 (UNRELEASED)
 
+- Always run provisioners marked as always [[GH-142]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/142)
+
 ## 3.0.4 (August 13, 2024)
 
 - Attempt error extraction on canceled operations [[GH-123]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/123)
