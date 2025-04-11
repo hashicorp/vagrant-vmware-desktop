@@ -167,6 +167,34 @@ func TestDhcpLookupMultipleEntry(t *testing.T) {
 		panic(fmt.Sprintf("Failed to load dhcp leases file: %s", err))
 	}
 
+	address, err := df.IpForMac(validEntry.Mac)
+	if err != nil {
+		t.Errorf("Failed to receive address for valid MAC: %s valid entry: %v", err, validEntry)
+	}
+	if address != validEntry.Address {
+		t.Errorf("Received unexpected address %s != %s", address, validEntry.Address)
+	}
+}
+
+func TestDhcpLookupMultipleEntryDifferentHostname(t *testing.T) {
+	entries := generateLeaseEntries(10)
+	invalidEntry := entries[8]
+	validEntry := entries[9]
+	// Match the mac address for both entries
+	invalidEntry.Mac = validEntry.Mac
+	invalidEntry.Hostname = "other-host"
+	// Set valid entry with more recent start time
+	location, _ := time.LoadLocation("UTC")
+	validEntry.StartTime = time.Now().In(location).
+		Add(time.Duration(-1) * time.Minute).Format(VMWARE_TIME_FORMAT)
+
+	path := createLeaseFile(entries)
+	defer os.Remove(path)
+	df, err := LoadDhcpLeaseFile(path, defaultUtilityLogger())
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load dhcp leases file: %s", err))
+	}
+
 	_, err = df.IpForMac(validEntry.Mac)
 	if err == nil {
 		t.Errorf("Expected not found error but received none")

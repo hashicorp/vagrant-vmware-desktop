@@ -16,6 +16,7 @@ module HashiCorp
       include Vagrant::Action::Builtin
       include Vagrant::Action::General
 
+      autoload :BaseMacConfigWarning, "vagrant-vmware-desktop/action/base_mac_config_warning"
       autoload :BaseMacToIp, "vagrant-vmware-desktop/action/base_mac_to_ip"
       autoload :Boot, "vagrant-vmware-desktop/action/boot"
       autoload :CheckExistingNetwork, "vagrant-vmware-desktop/action/check_existing_network"
@@ -432,6 +433,8 @@ module HashiCorp
               b2.use Import
               b2.use SetDisplayName
             end
+
+            b2.use BaseMacConfigWarning
 
             b2.use action_start
           end
