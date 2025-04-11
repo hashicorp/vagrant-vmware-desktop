@@ -1,13 +1,27 @@
 Gem::Specification.new do |s|
-  s.name          = "vagrant-vmware-desktop"
-  s.version       = File.read(File.expand_path("../versions/desktop.txt", __FILE__))
-  s.platform      = Gem::Platform::RUBY
-  s.authors       = "Vagrant Team"
-  s.email         = "vagrant@hashicorp.com"
-  s.homepage      = "http://www.vagrantup.com"
-  s.license       = "MPL-2.0"
-  s.summary       = "Enables Vagrant to power VMware Workstation/Fusion machines."
-  s.description   = "Enables Vagrant to power VMware Workstation/Fusion machines."
+  s.name                 = "vagrant-vmware-desktop"
+  s.version              = File.read(File.expand_path("../versions/desktop.txt", __FILE__))
+  s.platform             = Gem::Platform::RUBY
+  s.authors              = "Vagrant Team"
+  s.email                = "vagrant@hashicorp.com"
+  s.homepage             = "http://www.vagrantup.com"
+  s.license              = "MPL-2.0"
+  s.summary              = "Enables Vagrant to power VMware Workstation/Fusion machines."
+  s.description          = "Enables Vagrant to power VMware Workstation/Fusion machines."
+  s.post_install_message = <<-EOF
+Thank you for installing the Vagrant VMware Desktop
+plugin. This plugin requires the Vagrant VMware
+Utility to be installed. To learn more about the
+Vagrant VMware Utility, please visit:
+
+  https://www.vagrantup.com/docs/providers/vmware/vagrant-vmware-utility
+
+To install the Vagrant VMware Utility, please
+download the appropriate installer for your
+system from:
+
+  https://www.vagrantup.com/downloads/vmware
+EOF
 
   s.required_rubygems_version = ">= 1.3.6"
 
