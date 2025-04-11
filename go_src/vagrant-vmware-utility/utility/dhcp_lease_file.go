@@ -251,6 +251,28 @@ func (d *DhcpLeaseFile) loadEntry(rawEntry map[string]string) error {
 		}
 	}
 
+	// If an entry already exists with the new entry's MAC, attempt
+	// to validate if one of the entries is stale so that it can
+	// be discarded.
+	if idx >= 0 {
+		checkEntry := d.Entries[idx]
+		// If the hostname matches, use the entry with the most
+		// recent start time on the lease
+		if newEntry.Hostname != "" && newEntry.Hostname == checkEntry.Hostname {
+			if newEntry.Created.After(checkEntry.Created) {
+				// Trim the existing entry out of the list
+				d.Entries = append(d.Entries[0:idx], d.Entries[idx+1:]...)
+				// Add the new entry to the list
+				d.Entries = append(d.Entries, newEntry)
+			}
+
+			return nil
+		}
+	}
+
+	// If an entry was detected but it could not be validated
+	// as being stale, mark the address as rejected and remove
+	// the existing record from the entry list.
 	if idx >= 0 {
 		d.Entries = append(d.Entries[0:idx], d.Entries[idx+1:]...)
 		d.rejectedMACs[newEntry.Mac] = struct{}{}
