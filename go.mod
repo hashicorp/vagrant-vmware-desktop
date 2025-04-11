@@ -1,6 +1,6 @@
 module github.com/hashicorp/vagrant-vmware-desktop
 
-go 1.22
+go 1.24
 
 require (
 	github.com/hashicorp/cli v1.1.6
