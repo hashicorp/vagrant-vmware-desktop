@@ -47,4 +47,9 @@ EOF
   s.files         = unignored_files
   s.executables   = []
   s.require_path  = 'lib'
+
+  s.add_development_dependency "rake"
+  s.add_development_dependency "rspec", "~> 3.13"
+  s.add_development_dependency "rspec-its", "~> 2.0"
+  s.add_development_dependency "webmock", "~> 3.25"
 end

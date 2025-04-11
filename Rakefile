@@ -17,17 +17,8 @@ Dir["#{task_dir}/**/*.rake"].each do |task_file|
   load task_file
 end
 
-# Default task is to run specs
-task :default => :spec
+require "rspec/core/rake_task"
 
-desc "Run specs"
-task :spec do
-  exec("bundle exec rake internal_spec")
-end
+RSpec::Core::RakeTask.new(:spec)
 
-task :internal_spec do
-  require 'bundler/setup'
-  require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:actual_spec)
-  Rake::Task["actual_spec"].invoke
-end
+task default: :spec
