@@ -4,6 +4,20 @@
 en:
   hashicorp:
     vagrant_vmware_desktop:
+      box_base_mac_warning: |-
+        Detected guest `base_mac` value set within the Vagrantfile
+        included with this box. Having the `base_mac` value set
+        for VMware guests may cause issues properly identifying
+        the guest IP address due to MAC collisions.
+
+          Current value: %{base_mac}
+
+        To disable the `base_mac` value so it will be randomly
+        generated, set the value to nil in the Vagrantfile:
+
+          config.vm.base_mac = nil
+
+        https://www.vagrantup.com/docs/vagrantfile/machine_settings#config-vm-base_mac
       already_running: |-
         Machine is already running.
       booted_and_ready: |-
