@@ -4,6 +4,7 @@
 - Fix finding primary disk and support NVME [[GH-134]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/134)
 - Force failure when primary disk is not found [[GH-151]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/151)
 - Extend vmrun start timeout value [[GH-150]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/150)
+- Add pvscsi as supported disk adapter type [[GH-135]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/135)
 
 ## 3.0.4 (August 13, 2024)
 
