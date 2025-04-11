@@ -33,6 +33,10 @@ module HashiCorp
         # Number of bytes in disk sector
         SECTOR_TO_BYTES = 512.freeze
 
+        # Number of seconds to allow the vmrun start command
+        # to complete
+        VMRUN_START_TIMEOUT = 300.freeze
+
         # Vagrant utility version requirement which must be satisfied to properly
         # work with this version of the plugin. This should be used when new API
         # end points are added to the utility to ensure expected functionality.
@@ -944,10 +948,10 @@ module HashiCorp
         # This will start the VMware machine.
         def start(gui=false)
           gui_arg = gui ? "gui" : "nogui"
-          vmrun("start", host_vmx_path, gui_arg, retryable: true, timeout: 45)
+          vmrun("start", host_vmx_path, gui_arg, retryable: true, timeout: VMRUN_START_TIMEOUT)
         rescue Vagrant::Util::Subprocess::TimeoutExceeded
           # Sometimes vmrun just hangs. We give it a generous timeout
-          # of 45 seconds, and then throw this.
+          # and then throw this.
           raise Errors::StartTimeout
         end
 
