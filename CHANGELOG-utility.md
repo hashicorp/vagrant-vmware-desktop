@@ -1,5 +1,8 @@
 ## 1.0.24 (UNRELEASED)
 
+- Default license to professional when empty [[GH-152]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/152)
+- Update multiple lease matching behavior [[GH-154]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/154)
+
 ## 1.0.23 (August 13, 2024)
 
 - Recover from invalid NAT settings file [[GH-124]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/124)

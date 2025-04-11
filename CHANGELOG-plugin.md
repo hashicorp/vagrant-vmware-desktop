@@ -6,6 +6,7 @@
 - Extend vmrun start timeout value [[GH-150]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/150)
 - Add pvscsi as supported disk adapter type [[GH-135]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/135)
 - Default license detection to professional when empty [[GH-152]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/152)
+- Detect `base_mac` in box Vagrantfile and generate warning [[GH-154]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/154)
 
 ## 3.0.4 (August 13, 2024)
 
