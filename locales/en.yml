@@ -611,6 +611,8 @@ en:
           again. If this error persists, please open a new issue at:
 
             https://github.com/hashicorp/vagrant-vmware-desktop/issues
+
+          Encountered error: %{error}
         driver_api_invalid_response: |-
           Vagrant failed to properly process a result from the Vagrant VMware
           Utility driver. Please try to run the command again. If this error

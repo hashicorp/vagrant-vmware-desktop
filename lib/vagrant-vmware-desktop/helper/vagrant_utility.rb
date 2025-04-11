@@ -179,6 +179,7 @@ module HashiCorp
           rescue Net::HTTPServiceUnavailable
             raise Errors::DriverAPIConnectionFailed
           rescue => err
+            @logger.debug("unexpected error - #{err.class}: #{err}")
             raise Errors::DriverAPIRequestUnexpectedError, error: err
           end
         end
