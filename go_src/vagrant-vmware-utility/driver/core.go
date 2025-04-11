@@ -36,6 +36,13 @@ func (v *VmwareInfo) IsProfessional() bool {
 		return false
 	}
 
+	// Empty value may be produced when using the license
+	// generated for free fusion/workstation. If the license
+	// content is empty, just assume it's professional
+	if v.License == "" {
+		return true
+	}
+
 	// Now we need to check if we are using a product that
 	// is a professional version. These include Workstation
 	// and Fusion (but not player)
