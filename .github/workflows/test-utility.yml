@@ -5,11 +5,13 @@ on:
       - 'test-*'
     paths:
       - 'go_src/**'
+      - 'go.*'
   pull_request:
     branches:
       - main
     paths:
       - 'go_src/**'
+      - 'go.*'
 
 jobs:
   tests:
