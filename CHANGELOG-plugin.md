@@ -1,4 +1,4 @@
-## 3.0.5 (UNRELEASED)
+## 3.0.5 (April 18, 2025)
 
 - Always run provisioners marked as always [[GH-142]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/142)
 - Fix finding primary disk and support NVME [[GH-134]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/134)
