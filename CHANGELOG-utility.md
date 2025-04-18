@@ -1,3 +1,5 @@
+## 1.0.25 (UNRELEASED)
+
 ## 1.0.24 (April 18, 2025)
 
 - Default license to professional when empty [[GH-152]](https://github.com/hashicorp/vagrant-vmware-desktop/pull/152)
