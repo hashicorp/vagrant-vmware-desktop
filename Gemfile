@@ -16,3 +16,6 @@ end
 group :plugins do
   gemspec
 end
+
+# NOTE: Used for packaging
+gem "fpm"
