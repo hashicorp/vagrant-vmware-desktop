@@ -362,6 +362,7 @@ module HashiCorp
                 b3.use SetHostname
               end
 
+              b3.use CloudInitSetup
               b3.use CleanupDisks
               b3.use Disk
               b3.use VMXModify
@@ -376,6 +377,8 @@ module HashiCorp
               else
                 b3.use WaitForCommunicator
               end
+
+              b3.use CloudInitWait
             end
           end
           b.use Checkpoint

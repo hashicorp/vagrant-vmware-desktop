@@ -266,38 +266,51 @@ module HashiCorp
 
         # Gets the next slot available
         #
-        # @param [String] bus name, one of BUS_TYPES
+        # @param [String] bus_name name, one of BUS_TYPES
         # @param [Hash] attached disks
-        def self.get_slot(bus, attached_disks)
-          bus_num = 0
-          slot_num = 0
+        def self.get_slot(bus_name, attached_disks)
+          buses = Hash.new
+          # Always init a zero entry
+          buses[0] = Set.new([-1])
+
+          # Populate buses with currently used slots
           attached_disks.keys.each do |k|
-           s = k.match(/(?<=#{bus})(\d+:\d+)/)
-           if !s.nil?
-            bus_and_slot = s[0].split(":")
-            if bus_and_slot[0].to_i > bus_num
-              bus_num = bus_and_slot[0].to_i
-              # reset slot num
-              slot_num = 0
-            end
-            if bus_and_slot[1].to_i > slot_num
-              slot_num = bus_and_slot[1].to_i
-            end
-           end
+            val = k.match(/#{bus_name}(?<data>\d+:\d+)/)
+            next if val.nil?
+            bus, slot = val[:data].split(":", 2)
+            buses[bus.to_i] ||= Set.new([-1])
+            buses[bus.to_i].add(slot.to_i)
           end
 
-          # For ide bus the slot number must be 0 or 1
-          if bus.to_s == "ide"
-            bus_num = bus_num + (slot_num%2)
-            slot_num = (slot_num+1)%2
-            if bus_num > 1
-              @@logger.warn("attaching disk to #{bus}#{bus_num}:#{slot_num}, this will " \
-                "likely cause the disk to be unavailable, consider attaching the disk to a different bus")
+          # Attempt to find any empty slots on
+          # the available buses
+          bus_num, slot_num = catch(:found) do
+            buses.keys.sort.each do |b_idx|
+              bus = buses[b_idx]
+              (0..bus.max).each do |slot|
+                throw :found, [b_idx, slot] if !bus.include?(slot)
+              end
             end
-          else
-            slot_num = slot_num + 1
+
+            nil
           end
-          "#{bus}#{bus_num}:#{slot_num}"
+
+          # If no empty slots found, add new one
+          # to final bus
+          if bus_num.nil?
+            bus_num = buses.keys.max
+            slot_num = buses[bus_num].max + 1
+          end
+
+          # If this is an IDE bus and the slot
+          # is greater than 1, increment bus and
+          # reset the slot
+          if bus_name.to_s == "ide" && slot_num > 1
+            bus_num += 1
+            slot_num = 0
+          end
+
+          "#{bus_name}#{bus_num}:#{slot_num}"
         end
       end
     end
