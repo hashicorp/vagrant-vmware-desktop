@@ -13,7 +13,7 @@ module HashiCorp
         # @param [Vagrant::Machine] machine - the current machine
         # @return [List<String>] - snapshot names
         def self.snapshot_list(machine)
-          machine.provider.driver.snapshot_tree
+          machine.provider.driver.snapshot_list
         end
 
         # Delete all snapshots for the machine
