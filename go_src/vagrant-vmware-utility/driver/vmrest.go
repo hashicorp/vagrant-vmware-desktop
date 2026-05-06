@@ -149,6 +149,20 @@ func (v *vmrest) Init() (err error) {
 }
 
 func (v *vmrest) Cleanup() {
+	// Kill any running vmrest process first so it cannot outlive the utility.
+	// This is the path taken on SIGTERM (e.g. launchctl unload). The
+	// ctx.Done case in Runner uses context.Background so it never fires in
+	// practice, making Cleanup the only reliable termination point.
+	v.cmdMu.Lock()
+	cmd := v.command
+	v.command = nil
+	v.cmdMu.Unlock()
+	if cmd != nil {
+		v.logger.Debug("terminating vmrest process during cleanup")
+		cmd.Process.Kill()
+	}
+
+	// Handle configuration cleanup.
 	if v.isWindows() {
 		v.logger.Debug("vmrest configuration not removed on Windows platform")
 	} else if v.home != "" {
