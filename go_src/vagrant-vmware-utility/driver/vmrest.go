@@ -54,6 +54,7 @@ type VmrestDriver struct {
 type vmrest struct {
 	access      sync.Mutex
 	activity    chan struct{}
+	cmdMu       sync.Mutex
 	command     *exec.Cmd
 	config_path string
 	ctx         context.Context
@@ -148,6 +149,20 @@ func (v *vmrest) Init() (err error) {
 }
 
 func (v *vmrest) Cleanup() {
+	// Kill any running vmrest process first so it cannot outlive the utility.
+	// This is the path taken on SIGTERM (e.g. launchctl unload). The
+	// ctx.Done case in Runner uses context.Background so it never fires in
+	// practice, making Cleanup the only reliable termination point.
+	v.cmdMu.Lock()
+	cmd := v.command
+	v.command = nil
+	v.cmdMu.Unlock()
+	if cmd != nil {
+		v.logger.Debug("terminating vmrest process during cleanup")
+		cmd.Process.Kill()
+	}
+
+	// Handle configuration cleanup.
 	if v.isWindows() {
 		v.logger.Debug("vmrest configuration not removed on Windows platform")
 	} else if v.home != "" {
@@ -177,24 +192,60 @@ func (v *vmrest) Password() string {
 	return v.password
 }
 
+// ensureConfig verifies that the vmrest configuration directory and file are
+// still present on disk. On long-running systems the OS (e.g. macOS periodic
+// cleanup) may evict the temporary directory created during Init. If the
+// config file is missing, ensureConfig recreates the directory (if needed)
+// and the config file using the credentials and port already stored in memory,
+// so callers do not need to change the URL they are using.
+func (v *vmrest) ensureConfig() error {
+	if _, err := os.Stat(v.config_path); err == nil {
+		return nil // Config file is present; nothing to do.
+	}
+	v.logger.Warn("vmrest config file missing, recreating", "path", v.config_path)
+	if _, err := os.Stat(v.home); os.IsNotExist(err) {
+		newHome, err := ioutil.TempDir("", "util")
+		if err != nil {
+			return fmt.Errorf("failed to recreate vmrest home directory: %w", err)
+		}
+		v.logger.Info("recreated vmrest home directory", "original", v.home, "new", newHome)
+		v.home = newHome
+		v.config_path = path.Join(v.home, VMREST_CONFIG)
+	}
+	return v.configure()
+}
+
 func (v *vmrest) Runner() {
 	for {
 		select {
 		case <-v.activity:
 			v.logger.Trace("activity request detected")
-			if v.command == nil {
+			v.cmdMu.Lock()
+			running := v.command != nil
+			v.cmdMu.Unlock()
+			if !running {
 				v.logger.Debug("starting the process")
-				v.command = exec.Command(v.path)
+				// Ensure the config directory and file are still on disk.
+				// The OS may have purged the temporary directory created by
+				// Init (e.g. macOS daily cleanup after vmrest was idle).
+				if err := v.ensureConfig(); err != nil {
+					v.logger.Error("failed to ensure vmrest config, cannot start", "error", err)
+					continue
+				}
+				// Use a local cmd variable so that v.command is only set after a
+				// successful start. Error paths that continue leave v.command nil,
+				// ensuring the next activity signal retries the start.
+				cmd := exec.Command(v.path)
 
 				// Grab output from the process and send it to the logger.
 				// Useful for debugging if something goes wrong so we can
 				// see what the process is actually doing.
-				stderr, err := v.command.StderrPipe()
+				stderr, err := cmd.StderrPipe()
 				if err != nil {
 					v.logger.Error("failed to get stderr pipe", "error", err)
 					continue
 				}
-				stdout, err := v.command.StdoutPipe()
+				stdout, err := cmd.StdoutPipe()
 				if err != nil {
 					v.logger.Error("failed to get stdout pipe", "error", err)
 					continue
@@ -222,36 +273,59 @@ func (v *vmrest) Runner() {
 					}
 				}()
 
-				err = v.homedStart(v.command)
+				err = v.homedStart(cmd)
 				if err != nil {
 					v.logger.Error("failed to start", "error", err)
 					continue
 				}
-				_, err = os.FindProcess(v.command.Process.Pid)
+				_, err = os.FindProcess(cmd.Process.Pid)
 				if err != nil {
 					v.logger.Error("failed to locate started vmrest process", "error", err)
 					continue
 				}
 
-				// Start a cleanup function to prevent any unnoticed zombies from
-				// hanging around
+				// Publish the live process under the lock only after a confirmed
+				// successful start (v.command is always written under cmdMu).
+				v.cmdMu.Lock()
+				v.command = cmd
+				v.cmdMu.Unlock()
+
+				// Reap the process when it exits. Capture cmd (not v) so the
+				// goroutine only nils v.command when it still points to this
+				// specific process, preventing a newer process from being clobbered.
 				go func() {
-					v.command.Wait()
-					v.command = nil
+					cmd.Wait()
+					v.cmdMu.Lock()
+					if v.command == cmd {
+						v.command = nil
+					}
+					v.cmdMu.Unlock()
 					v.logger.Debug("process has been completed and reaped")
 				}()
 
 				v.logger.Debug("process has been started")
 			}
 		case <-time.After(VMREST_KEEPALIVE_SECONDS * time.Second):
-			if v.command != nil {
+			// Swap out v.command under the lock before killing so that any
+			// concurrent activity signal immediately sees nil and starts a
+			// fresh process. The zombie goroutine's compare-and-nil
+			// becomes a safe no-op because v.command is already nil.
+			v.cmdMu.Lock()
+			cmd := v.command
+			v.command = nil
+			v.cmdMu.Unlock()
+			if cmd != nil {
 				v.logger.Debug("halting running process")
-				v.command.Process.Kill()
+				cmd.Process.Kill()
 			}
 		case <-v.ctx.Done():
 			v.logger.Warn("halting due to context done")
-			if v.command != nil {
-				v.command.Process.Kill()
+			v.cmdMu.Lock()
+			cmd := v.command
+			v.command = nil
+			v.cmdMu.Unlock()
+			if cmd != nil {
+				cmd.Process.Kill()
 			}
 			break
 		}
