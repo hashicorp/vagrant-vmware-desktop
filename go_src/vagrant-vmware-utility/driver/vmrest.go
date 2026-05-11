@@ -192,6 +192,29 @@ func (v *vmrest) Password() string {
 	return v.password
 }
 
+// ensureConfig verifies that the vmrest configuration directory and file are
+// still present on disk. On long-running systems the OS (e.g. macOS periodic
+// cleanup) may evict the temporary directory created during Init. If the
+// config file is missing, ensureConfig recreates the directory (if needed)
+// and the config file using the credentials and port already stored in memory,
+// so callers do not need to change the URL they are using.
+func (v *vmrest) ensureConfig() error {
+	if _, err := os.Stat(v.config_path); err == nil {
+		return nil // Config file is present; nothing to do.
+	}
+	v.logger.Warn("vmrest config file missing, recreating", "path", v.config_path)
+	if _, err := os.Stat(v.home); os.IsNotExist(err) {
+		newHome, err := ioutil.TempDir("", "util")
+		if err != nil {
+			return fmt.Errorf("failed to recreate vmrest home directory: %w", err)
+		}
+		v.logger.Info("recreated vmrest home directory", "original", v.home, "new", newHome)
+		v.home = newHome
+		v.config_path = path.Join(v.home, VMREST_CONFIG)
+	}
+	return v.configure()
+}
+
 func (v *vmrest) Runner() {
 	for {
 		select {
@@ -202,6 +225,13 @@ func (v *vmrest) Runner() {
 			v.cmdMu.Unlock()
 			if !running {
 				v.logger.Debug("starting the process")
+				// Ensure the config directory and file are still on disk.
+				// The OS may have purged the temporary directory created by
+				// Init (e.g. macOS daily cleanup after vmrest was idle).
+				if err := v.ensureConfig(); err != nil {
+					v.logger.Error("failed to ensure vmrest config, cannot start", "error", err)
+					continue
+				}
 				// Use a local cmd variable so that v.command is only set after a
 				// successful start. Error paths that continue leave v.command nil,
 				// ensuring the next activity signal retries the start.
