@@ -26,22 +26,34 @@ func (v *VmwarePaths) Load() error {
 	var access uint32
 	progDataPath := ""
 	access = registry.QUERY_VALUE
-	if runtime.GOARCH == "amd64" {
-		access = access | registry.WOW64_32KEY
-	}
+
 	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
+	if err != nil && runtime.GOARCH == "amd64" {
+		access = access | registry.WOW64_32KEY
+		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
+			`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
+	}
+
 	if err != nil {
 		v.logger.Trace("failed to open registry", "error", err)
 		return err
 	}
 	defer regKey.Close()
+
 	regVal, _, err := regKey.GetStringValue("InstallPath")
 	if err != nil {
 		v.logger.Trace("failed to locate registry key", "key", "InstallPath", "error", err)
 		return err
 	}
 	v.InstallDir = regVal
+
+	productVersion, _, err := regKey.GetStringValue("ProductVersion")
+	if err != nil {
+		v.logger.Trace("failed to locate registry key", "key", "ProductVersion", "error", err)
+	} else {
+		v.logger.Trace("found product version", "version", productVersion)
+	}
 	pRegKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList`, registry.QUERY_VALUE)
 	if err == nil {
