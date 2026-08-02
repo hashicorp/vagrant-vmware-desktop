@@ -163,12 +163,12 @@ func (a *Api) loadTlsConfig() (*tls.Config, error) {
 	}
 	cert, err := tls.LoadX509KeyPair(paths.Certificate, paths.PrivateKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load X509 Key Pair from %q and %q: %w", paths.Certificate, paths.PrivateKey, err)
 	}
 	pool := x509.NewCertPool()
 	certPem, err := ioutil.ReadFile(paths.Certificate)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read certificate file %q: %w", paths.Certificate, err)
 	}
 	if !pool.AppendCertsFromPEM(certPem) {
 		return nil, errors.New("failed to properly load certificate")
