@@ -4,7 +4,7 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -28,7 +28,7 @@ type Vm struct {
 
 func NewVmrun(path string, logger hclog.Logger) (Vmrun, error) {
 	if !utility.RootOwned(path, true) {
-		return nil, errors.New("Failed to locate valid vmrun executable")
+		return nil, fmt.Errorf("Failed to locate valid vmrun executable at %q", path)
 	}
 	logger = logger.Named("vmrun")
 	return &VmrunExe{
@@ -41,9 +41,8 @@ func (v *VmrunExe) RunningVms() ([]*Vm, error) {
 	cmd := exec.Command(v.exePath, "list")
 	exitCode, out := utility.ExecuteWithOutput(cmd)
 	if exitCode != 0 {
-		v.logger.Debug("vmrun list failed", "exitcode", exitCode)
-		v.logger.Trace("vmrun list failed", "output", out)
-		return result, errors.New("Failed to list running VMs")
+		v.logger.Error("vmrun list failed", "exitcode", exitCode, "output", out, "path", v.exePath)
+		return result, fmt.Errorf("Failed to list running VMs using executable %q", v.exePath)
 	}
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
