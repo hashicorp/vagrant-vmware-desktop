@@ -30,9 +30,13 @@ func (v *VmwarePaths) Load() error {
 	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
 	if err != nil && runtime.GOARCH == "amd64" {
-		access = access | registry.WOW64_32KEY
 		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
-			`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
+			`SOFTWARE\VMware, Inc.\VMware Workstation`, access|registry.WOW64_32KEY)
+	}
+
+	if err != nil {
+		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
+			`SOFTWARE\VMware, Inc.\VMware Workstation`, access|registry.WOW64_64KEY)
 	}
 
 	if err != nil {
