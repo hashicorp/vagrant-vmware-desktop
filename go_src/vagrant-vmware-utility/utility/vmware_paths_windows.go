@@ -79,9 +79,9 @@ func (v *VmwarePaths) Load() error {
 	// OPTIMIZATION 2: Graceful binary resolution
 	checkPath := func(filename string, optional bool) string {
 		fullPath := filepath.Join(v.InstallDir, filename)
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		if _, err := os.Stat(fullPath); err != nil {
 			if optional {
-				v.logger.Trace("optional binary not found, skipping", "path", fullPath)
+				v.logger.Trace("optional binary not found or inaccessible, skipping", "path", fullPath, "error", err)
 				return ""
 			}
 		}
