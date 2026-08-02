@@ -191,12 +191,12 @@ func (v *vmrest) Runner() {
 				// see what the process is actually doing.
 				stderr, err := v.command.StderrPipe()
 				if err != nil {
-					v.logger.Error("failed to get stderr pipe", "error", err)
+					v.logger.Error("failed to get stderr pipe", "error", err, "path", v.path)
 					continue
 				}
 				stdout, err := v.command.StdoutPipe()
 				if err != nil {
-					v.logger.Error("failed to get stdout pipe", "error", err)
+					v.logger.Error("failed to get stdout pipe", "error", err, "path", v.path)
 					continue
 				}
 				go func() {
@@ -224,7 +224,7 @@ func (v *vmrest) Runner() {
 
 				err = v.homedStart(v.command)
 				if err != nil {
-					v.logger.Error("failed to start", "error", err)
+					v.logger.Error("failed to start", "error", err, "path", v.path)
 					continue
 				}
 				_, err = os.FindProcess(v.command.Process.Pid)
@@ -376,16 +376,16 @@ func (v *vmrest) stringgen(syms bool, l int) (string, error) {
 
 func (v *vmrest) validate() error {
 	if !utility.FileExists(v.path) {
-		v.logger.Trace("missing vmrest executable", "path", v.path)
-		return errors.New("Failed to locate the vmrest executable")
+		v.logger.Error("missing vmrest executable", "path", v.path)
+		return fmt.Errorf("Failed to locate the vmrest executable at %q", v.path)
 	}
 
 	cmd := exec.Command(v.path, "-v")
 	_, o := utility.ExecuteWithOutput(cmd)
 	m, err := utility.MatchPattern(`vmrest (?P<version>[\d+.]+) `, o)
 	if err != nil {
-		v.logger.Trace("failed to determine vmrest version information", "output", o)
-		return errors.New("failed to determine vmrest version")
+		v.logger.Error("failed to determine vmrest version information", "output", o, "path", v.path)
+		return fmt.Errorf("failed to determine vmrest version using executable %q", v.path)
 	}
 	v.logger.Trace("detected vmrest version", "version", m["version"])
 	constraint, err := version.NewConstraint(VMREST_VERSION_CONSTRAINT)
@@ -410,6 +410,9 @@ func (v *vmrest) validate() error {
 }
 
 func NewVmrest(ctx context.Context, vmrestPath string, logger hclog.Logger) (v *vmrest, err error) {
+	if vmrestPath == "" {
+		return nil, nil // Return nil, nil to gracefully fall back without causing an error
+	}
 	logger = logger.Named("process")
 	v = &vmrest{
 		activity: make(chan struct{}),
@@ -437,6 +440,10 @@ func NewVmrestDriver(ctx context.Context, f Driver, logger hclog.Logger) (d Driv
 	if err != nil {
 		logger.Warn("failed to create vmrest driver", "error", err)
 		logger.Info("using fallback driver")
+		return f, nil
+	}
+	if v == nil {
+		logger.Info("vmrest path is empty, using fallback driver")
 		return f, nil
 	}
 	var b BaseDriver

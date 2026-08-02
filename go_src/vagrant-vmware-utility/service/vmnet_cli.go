@@ -31,7 +31,7 @@ type VmnetCliExe struct {
 }
 
 func NewVmnetCli(path string, services VmwareServices, logger hclog.Logger) (VmnetCli, error) {
-	if !utility.RootOwned(path, true) {
+	if path != "" && !utility.RootOwned(path, true) {
 		return nil, errors.New("Failed to locate valid vmnet executable")
 	}
 	logger = logger.Named("vmnetcli")
@@ -42,6 +42,10 @@ func NewVmnetCli(path string, services VmwareServices, logger hclog.Logger) (Vmn
 }
 
 func (v *VmnetCliExe) Start() (err error) {
+	if v.ExePath == "" {
+		v.logger.Debug("start ignored - vmnet executable path is empty")
+		return nil
+	}
 	if v.Status() {
 		v.logger.Debug("start ignored - service running")
 		return nil
@@ -53,6 +57,10 @@ func (v *VmnetCliExe) Start() (err error) {
 }
 
 func (v *VmnetCliExe) Stop() (err error) {
+	if v.ExePath == "" {
+		v.logger.Debug("stop ignored - vmnet executable path is empty")
+		return nil
+	}
 	v.Services.WrapOpenServices(func() {
 		err = v.stop()
 	})
@@ -60,6 +68,9 @@ func (v *VmnetCliExe) Stop() (err error) {
 }
 
 func (v *VmnetCliExe) Status() bool {
+	if v.ExePath == "" {
+		return false
+	}
 	cmd := exec.Command(v.ExePath, "--status")
 	if utility.Execute(cmd) == 0 {
 		v.logger.Debug("service status", "state", "running")
@@ -70,6 +81,10 @@ func (v *VmnetCliExe) Status() bool {
 }
 
 func (v *VmnetCliExe) Restart() (err error) {
+	if v.ExePath == "" {
+		v.logger.Debug("restart ignored - vmnet executable path is empty")
+		return nil
+	}
 	v.Services.WrapOpenServices(func() {
 		err = v.stop()
 		if err != nil {
@@ -81,6 +96,10 @@ func (v *VmnetCliExe) Restart() (err error) {
 }
 
 func (v *VmnetCliExe) Configure(path string) (err error) {
+	if v.ExePath == "" {
+		v.logger.Debug("configure ignored - vmnet executable path is empty")
+		return nil
+	}
 	cmd := exec.Command(v.ExePath)
 	cmd.Args = []string{v.ExePath, "--configure"}
 	if runtime.GOOS == "linux" {
@@ -110,6 +129,9 @@ func (v *VmnetCliExe) Configure(path string) (err error) {
 }
 
 func (v *VmnetCliExe) stop() (err error) {
+	if v.ExePath == "" {
+		return nil
+	}
 	v.logger.Debug("stopping service")
 	cmd := exec.Command(v.ExePath, "--stop")
 	exitCode, out := utility.ExecuteWithOutput(cmd)
@@ -126,6 +148,9 @@ func (v *VmnetCliExe) stop() (err error) {
 }
 
 func (v *VmnetCliExe) start() (err error) {
+	if v.ExePath == "" {
+		return nil
+	}
 	v.logger.Debug("starting service")
 	cmd := exec.Command(v.ExePath, "--start")
 	exitCode, out := utility.ExecuteWithOutput(cmd)
