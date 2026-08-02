@@ -4,7 +4,6 @@
 package utility
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,15 +36,15 @@ func (v *VmwarePaths) Load() error {
 	}
 
 	if err != nil {
-		v.logger.Error("failed to open VMware registry key", "error", err)
-		return fmt.Errorf("failed to open VMware registry key: %w", err)
+		v.logger.Trace("failed to open registry", "error", err)
+		return err
 	}
 	defer regKey.Close()
 
 	regVal, _, err := regKey.GetStringValue("InstallPath")
 	if err != nil {
-		v.logger.Error("failed to locate VMware InstallPath registry key", "error", err)
-		return fmt.Errorf("failed to locate VMware InstallPath registry key: %w", err)
+		v.logger.Trace("failed to locate registry key", "key", "InstallPath", "error", err)
+		return err
 	}
 	v.InstallDir = regVal
 

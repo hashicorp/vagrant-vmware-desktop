@@ -321,7 +321,7 @@ func (b *BaseDriver) registryTakeOwnership(root registry.Key, path string) bool 
 		"-RootKey", o_prefix, "-RegKey", `"`+path+`"`)
 	exitCode, output := utility.ExecuteWithOutput(cmd)
 	if exitCode != 0 {
-		b.logger.Error("failed to change registry ownership", "path", utility.ExpandPath(POWERSHELL_PATH), "prefix", o_prefix, "key", path, "output", output)
+		b.logger.Warn("failed to change registry ownership", "prefix", o_prefix, "key", path, "output", output)
 		return false
 	}
 	b.logger.Warn("registry ownership executed", "exitcode", exitCode, "output", output)
