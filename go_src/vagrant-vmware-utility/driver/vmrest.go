@@ -410,6 +410,9 @@ func (v *vmrest) validate() error {
 }
 
 func NewVmrest(ctx context.Context, vmrestPath string, logger hclog.Logger) (v *vmrest, err error) {
+	if vmrestPath == "" {
+		return nil, nil // Return nil, nil to gracefully fall back without causing an error
+	}
 	logger = logger.Named("process")
 	v = &vmrest{
 		activity: make(chan struct{}),
@@ -437,6 +440,10 @@ func NewVmrestDriver(ctx context.Context, f Driver, logger hclog.Logger) (d Driv
 	if err != nil {
 		logger.Warn("failed to create vmrest driver", "error", err)
 		logger.Info("using fallback driver")
+		return f, nil
+	}
+	if v == nil {
+		logger.Info("vmrest path is empty, using fallback driver")
 		return f, nil
 	}
 	var b BaseDriver
