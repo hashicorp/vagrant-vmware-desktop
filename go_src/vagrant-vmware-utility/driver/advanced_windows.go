@@ -41,10 +41,10 @@ func (a *AdvancedDriver) AddPortFwd(pfwds []*PortFwd) error {
 					access := a.registryAccess(registry.ALL_ACCESS)
 					regKey, _, err = registry.CreateKey(registry.LOCAL_MACHINE, fwdPath, access)
 					if err != nil {
-						return err
+						return fmt.Errorf("failed accessing path %q: %w", fwdPath, err)
 					}
 				} else {
-					return err
+					return fmt.Errorf("failed accessing path %q: %w", fwdPath, err)
 				}
 			}
 			hostPort := strconv.Itoa(pfwd.Port)

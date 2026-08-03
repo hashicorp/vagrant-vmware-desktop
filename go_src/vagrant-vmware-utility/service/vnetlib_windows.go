@@ -35,7 +35,7 @@ func (v *VnetlibExe) deletePortFwd(device, protocol, port string) (int, string) 
 		v.registryAccess(registry.ALL_ACCESS))
 	if err != nil {
 		v.logger.Trace("portforward delete registry open", "path", fwdPath, "error", err)
-		return -1, err.Error()
+		return -1, fmt.Errorf("failed accessing path %q: %w", fwdPath, err).Error()
 	}
 	defer regKey.Close()
 	err = regKey.DeleteValue(port)
@@ -121,7 +121,7 @@ func (v *VnetlibExe) lookupReservedAddress(device, mac string) (int, string) {
 	if err != nil {
 		v.logger.Trace("reserved address lookup registry open failure", "path", keyPath,
 			"error", err)
-		return -1, err.Error()
+		return -1, fmt.Errorf("failed accessing path %q: %w", keyPath, err).Error()
 	}
 	defer regKey.Close()
 	regmacs, err := regKey.ReadValueNames(0)
@@ -246,7 +246,7 @@ func (v *VnetlibExe) getUnusedDevice() (int, string) {
 	if err != nil {
 		v.logger.Trace("vnetlib registry open failure", "path", VMNETCONFIG_REGISTRY_PATH,
 			"error", err)
-		return -1, err.Error()
+		return -1, fmt.Errorf("failed accessing path %q: %w", VMNETCONFIG_REGISTRY_PATH, err).Error()
 	}
 	allDevices, err := regKey.ReadSubKeyNames(-1)
 	if err != nil {
