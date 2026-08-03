@@ -418,7 +418,7 @@ func (n *VMWareNetworkingFile) Load() error {
 		n.DhcpReservations = []*DhcpReservation{}
 		n.PortFwds = []*PortFwd{}
 
-		return nil
+		return fmt.Errorf("failed accessing path %q: %w", n.Path, err)
 	}
 	defer nFile.Close()
 	scanner := bufio.NewScanner(nFile)
