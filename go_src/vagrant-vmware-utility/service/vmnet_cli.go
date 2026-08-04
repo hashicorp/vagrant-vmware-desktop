@@ -5,6 +5,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -178,7 +179,7 @@ func (v *VmnetCliExe) copyFile(fpath string) (tpath string, err error) {
 	src, err := os.Open(fpath)
 	if err != nil {
 		v.logger.Error("failed to open source file for copy", "path", fpath, "error", err)
-		return tpath, err
+		return tpath, fmt.Errorf("failed accessing path %q: %w", fpath, err)
 	}
 	defer src.Close()
 	_, err = io.Copy(dst, src)

@@ -133,13 +133,13 @@ func (c *Command) loadConfig() *Config {
 func (c *Command) loadConfigFile(path string, config *ConfigFile) {
 	f, err := os.Open(path)
 	if err != nil {
-		configurationError("Failed to open configuration - %s", err)
+		configurationError("Failed to open configuration %q - %s", path, err)
 	}
 	defer f.Close()
 
 	contents, err := ioutil.ReadAll(f)
 	if err != nil {
-		configurationError("Failed to read configuration - %s", err)
+		configurationError("Failed to read configuration %q - %s", path, err)
 	}
 
 	err = hclsimple.Decode(path, contents, nil, config)
@@ -161,7 +161,7 @@ func (c *Command) initlogger(n *Config, name string) (err error) {
 	if n.LogFile != "" {
 		err = os.MkdirAll(path.Dir(n.LogFile), 0755)
 		if err != nil {
-			return
+			return fmt.Errorf("failed accessing path %q: %w", path.Dir(n.LogFile), err)
 		}
 		md := os.O_CREATE | os.O_WRONLY
 		if n.LogAppend {
@@ -169,7 +169,7 @@ func (c *Command) initlogger(n *Config, name string) (err error) {
 		}
 		f, err := os.OpenFile(n.LogFile, md, 0644)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed accessing path %q: %w", n.LogFile, err)
 		}
 		logOpt.Output = f
 	}

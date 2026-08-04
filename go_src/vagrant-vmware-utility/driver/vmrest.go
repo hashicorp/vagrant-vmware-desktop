@@ -282,8 +282,8 @@ func (v *vmrest) homedStart(cmd *exec.Cmd) error {
 func (v *vmrest) configure() (err error) {
 	f, err := os.OpenFile(v.config_path, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		v.logger.Error("failed to create config file", "error", err)
-		return errors.New("failed to configure process")
+		v.logger.Error("failed to create config file", "error", err, "path", v.config_path)
+		return fmt.Errorf("failed accessing path %q: %w", v.config_path, err)
 	}
 	defer f.Close()
 	salt, err := v.stringgen(true, 16)

@@ -74,7 +74,7 @@ func (b *BaseDriver) Vmnets() (*Vmnets, error) {
 	if err != nil {
 		b.logger.Trace("vmnet list subkeys", "path", configPath,
 			"error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed accessing path %q: %w", configPath, err)
 	}
 	vmnets := &Vmnets{}
 	for _, vmnetName := range devices {
@@ -163,7 +163,7 @@ func (b *BaseDriver) PortFwds(device string) (pfwds *PortFwds, err error) {
 		if err != nil {
 			b.logger.Trace("portforward registry subkeys", "path", VMNETLIB_REGISTRY_PATH+`\VMnetConfig`,
 				"error", err)
-			return nil, err
+			return nil, fmt.Errorf("failed accessing path %q: %w", VMNETLIB_REGISTRY_PATH+`\VMnetConfig`, err)
 		}
 		for _, dev := range allDevices {
 			if err := b.supportPortFwds(dev); err == nil {
@@ -362,7 +362,7 @@ func (b *BaseDriver) buildFwdMap(device, key string) (map[string]map[string]stri
 	if err != nil {
 		b.logger.Trace("portforward map build registry key list", "path", netRegistryPath,
 			"error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed accessing path %q: %w", netRegistryPath, err)
 	}
 	b.logger.Trace("portforward mapping list", "path", netRegistryPath, "forwards", forwards)
 	for _, fwdKey := range forwards {
