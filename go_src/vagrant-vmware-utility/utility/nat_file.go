@@ -6,7 +6,6 @@ package utility
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -63,7 +62,7 @@ func (n *VMWareNatFile) Load() error {
 	nFile, err := os.Open(n.Path)
 	if err != nil {
 		n.logger.Debug("load failure", "path", n.Path, "error", err)
-		return fmt.Errorf("failed accessing path %q: %w", n.Path, err)
+		return err
 	}
 	defer nFile.Close()
 	scanner := bufio.NewScanner(nFile)

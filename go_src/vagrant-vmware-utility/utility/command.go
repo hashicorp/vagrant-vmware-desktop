@@ -4,8 +4,6 @@
 package utility
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"syscall"
@@ -39,9 +37,6 @@ func ExecuteWithOutput(cmd *exec.Cmd) (exitCode int, output string) {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				exitCode = status.ExitStatus()
 			}
-		} else {
-			output = fmt.Sprintf("Error running %q: %s", cmd.Path, err)
-			return 1, output
 		}
 	}
 	output = string(buf)
@@ -50,8 +45,5 @@ func ExecuteWithOutput(cmd *exec.Cmd) (exitCode int, output string) {
 
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
-	if err != nil {
-		log.Printf("FileExists os.Stat failed for %q: %s", path, err)
-	}
 	return err == nil
 }

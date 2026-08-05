@@ -5,7 +5,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -32,7 +31,7 @@ type VmnetCliExe struct {
 }
 
 func NewVmnetCli(path string, services VmwareServices, logger hclog.Logger) (VmnetCli, error) {
-	if path != "" && !utility.RootOwned(path, true) {
+	if !utility.RootOwned(path, true) {
 		return nil, errors.New("Failed to locate valid vmnet executable")
 	}
 	logger = logger.Named("vmnetcli")
@@ -43,10 +42,6 @@ func NewVmnetCli(path string, services VmwareServices, logger hclog.Logger) (Vmn
 }
 
 func (v *VmnetCliExe) Start() (err error) {
-	if v.ExePath == "" {
-		v.logger.Debug("start ignored - vmnet executable path is empty")
-		return nil
-	}
 	if v.Status() {
 		v.logger.Debug("start ignored - service running")
 		return nil
@@ -58,10 +53,6 @@ func (v *VmnetCliExe) Start() (err error) {
 }
 
 func (v *VmnetCliExe) Stop() (err error) {
-	if v.ExePath == "" {
-		v.logger.Debug("stop ignored - vmnet executable path is empty")
-		return nil
-	}
 	v.Services.WrapOpenServices(func() {
 		err = v.stop()
 	})
@@ -69,9 +60,6 @@ func (v *VmnetCliExe) Stop() (err error) {
 }
 
 func (v *VmnetCliExe) Status() bool {
-	if v.ExePath == "" {
-		return false
-	}
 	cmd := exec.Command(v.ExePath, "--status")
 	if utility.Execute(cmd) == 0 {
 		v.logger.Debug("service status", "state", "running")
@@ -82,10 +70,6 @@ func (v *VmnetCliExe) Status() bool {
 }
 
 func (v *VmnetCliExe) Restart() (err error) {
-	if v.ExePath == "" {
-		v.logger.Debug("restart ignored - vmnet executable path is empty")
-		return nil
-	}
 	v.Services.WrapOpenServices(func() {
 		err = v.stop()
 		if err != nil {
@@ -97,10 +81,6 @@ func (v *VmnetCliExe) Restart() (err error) {
 }
 
 func (v *VmnetCliExe) Configure(path string) (err error) {
-	if v.ExePath == "" {
-		v.logger.Debug("configure ignored - vmnet executable path is empty")
-		return nil
-	}
 	cmd := exec.Command(v.ExePath)
 	cmd.Args = []string{v.ExePath, "--configure"}
 	if runtime.GOOS == "linux" {
@@ -123,23 +103,20 @@ func (v *VmnetCliExe) Configure(path string) (err error) {
 		if exitCode != 0 {
 			v.logger.Debug("service configure failed", "exitcode", exitCode)
 			v.logger.Trace("service failure", "output", out)
-			err = fmt.Errorf("failed executing command %q: %s", cmd.Path, "Failed to configure vmnet service")
+			err = errors.New("Failed to configure vmnet service")
 		}
 	})
 	return err
 }
 
 func (v *VmnetCliExe) stop() (err error) {
-	if v.ExePath == "" {
-		return nil
-	}
 	v.logger.Debug("stopping service")
 	cmd := exec.Command(v.ExePath, "--stop")
 	exitCode, out := utility.ExecuteWithOutput(cmd)
 	if exitCode != 0 {
 		v.logger.Debug("service stop failed", "exitcode", exitCode)
 		v.logger.Trace("service failure", "output", out)
-		err = fmt.Errorf("failed executing command %q: %s", cmd.Path, "Failed to stop vmnet service")
+		err = errors.New("Failed to stop vmnet service")
 	}
 	// Ensure things are dead
 	cmd = exec.Command("/usr/bin/pkill", "vmnet-natd", "vmnet-bridge", "vmnet-dhcpd")
@@ -149,16 +126,13 @@ func (v *VmnetCliExe) stop() (err error) {
 }
 
 func (v *VmnetCliExe) start() (err error) {
-	if v.ExePath == "" {
-		return nil
-	}
 	v.logger.Debug("starting service")
 	cmd := exec.Command(v.ExePath, "--start")
 	exitCode, out := utility.ExecuteWithOutput(cmd)
 	if exitCode != 0 {
 		v.logger.Debug("service start failed", "exitcode", exitCode)
 		v.logger.Trace("service failure", "output", out)
-		err = fmt.Errorf("failed executing command %q: %s", cmd.Path, "Failed to start vmnet service")
+		err = errors.New("Failed to start vmnet service")
 	}
 	return err
 }
@@ -179,7 +153,7 @@ func (v *VmnetCliExe) copyFile(fpath string) (tpath string, err error) {
 	src, err := os.Open(fpath)
 	if err != nil {
 		v.logger.Error("failed to open source file for copy", "path", fpath, "error", err)
-		return tpath, fmt.Errorf("failed accessing path %q: %w", fpath, err)
+		return tpath, err
 	}
 	defer src.Close()
 	_, err = io.Copy(dst, src)

@@ -113,7 +113,7 @@ func (d *DhcpLeaseFile) Load() error {
 	dFile, err := os.Open(d.Path)
 	if err != nil {
 		d.logger.Warn("failed to load DHCP lease data file", "path", d.Path, "error", err)
-		return fmt.Errorf("failed accessing path %q: %w", d.Path, err)
+		return err
 	}
 	defer dFile.Close()
 	reader := bufio.NewReader(dFile)
