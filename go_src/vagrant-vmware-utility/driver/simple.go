@@ -249,7 +249,7 @@ func (s *SimpleDriver) backupDhcpLeases(netF utility.NetworkingFile) (backups []
 			leaseFile, err := os.Open(leasePath)
 			if err != nil {
 				s.logger.Trace("failed to open lease file", "path", leasePath, "error", err)
-				return nil, fmt.Errorf("failed accessing path %q: %w", leasePath, err)
+				return nil, err
 			}
 			defer leaseFile.Close()
 			s.logger.Trace("creating dhcp lease file backup", "device", dev.Name, "path", leasePath)
@@ -277,7 +277,7 @@ func (s *SimpleDriver) restoreDhcpLeases(backups []*fileBackup) error {
 		if err != nil {
 			s.logger.Trace("failed to open backup file for lease restore", "path",
 				backup.BackupPath, "error", err)
-			return fmt.Errorf("failed accessing path %q: %w", backup.BackupPath, err)
+			return err
 		}
 		defer src.Close()
 		defer os.Remove(src.Name())
@@ -285,7 +285,7 @@ func (s *SimpleDriver) restoreDhcpLeases(backups []*fileBackup) error {
 		if err != nil {
 			s.logger.Trace("failed to open lease file for restore", "path",
 				backup.Path, "error", err)
-			return fmt.Errorf("failed accessing path %q: %w", backup.Path, err)
+			return err
 		}
 		defer dst.Close()
 		_, err = io.Copy(dst, src)

@@ -74,7 +74,7 @@ func (b *BaseDriver) Vmnets() (*Vmnets, error) {
 	if err != nil {
 		b.logger.Trace("vmnet list subkeys", "path", configPath,
 			"error", err)
-		return nil, fmt.Errorf("failed accessing path %q: %w", configPath, err)
+		return nil, err
 	}
 	vmnets := &Vmnets{}
 	for _, vmnetName := range devices {
@@ -163,7 +163,7 @@ func (b *BaseDriver) PortFwds(device string) (pfwds *PortFwds, err error) {
 		if err != nil {
 			b.logger.Trace("portforward registry subkeys", "path", VMNETLIB_REGISTRY_PATH+`\VMnetConfig`,
 				"error", err)
-			return nil, fmt.Errorf("failed accessing path %q: %w", VMNETLIB_REGISTRY_PATH+`\VMnetConfig`, err)
+			return nil, err
 		}
 		for _, dev := range allDevices {
 			if err := b.supportPortFwds(dev); err == nil {
@@ -314,15 +314,14 @@ func (b *BaseDriver) registryTakeOwnership(root registry.Key, path string) bool 
 	case registry.USERS:
 		o_prefix = "Users"
 	}
-	powershellPath := utility.ExpandPath(POWERSHELL_PATH)
-	cmd := exec.Command(powershellPath,
+	cmd := exec.Command(utility.ExpandPath(POWERSHELL_PATH),
 		"-ExecutionPolicy", "Unrestricted",
 		"-NoProfile", "-Noninteractive",
 		"-Command", "& {"+REGISTRY_OWNERSHIP_SCRIPT+"}",
 		"-RootKey", o_prefix, "-RegKey", `"`+path+`"`)
 	exitCode, output := utility.ExecuteWithOutput(cmd)
 	if exitCode != 0 {
-		b.logger.Warn("failed to change registry ownership", "prefix", o_prefix, "key", path, "powershell_path", powershellPath, "output", output)
+		b.logger.Warn("failed to change registry ownership", "prefix", o_prefix, "key", path, "output", output)
 		return false
 	}
 	b.logger.Warn("registry ownership executed", "exitcode", exitCode, "output", output)
@@ -362,7 +361,7 @@ func (b *BaseDriver) buildFwdMap(device, key string) (map[string]map[string]stri
 	if err != nil {
 		b.logger.Trace("portforward map build registry key list", "path", netRegistryPath,
 			"error", err)
-		return nil, fmt.Errorf("failed accessing path %q: %w", netRegistryPath, err)
+		return nil, err
 	}
 	b.logger.Trace("portforward mapping list", "path", netRegistryPath, "forwards", forwards)
 	for _, fwdKey := range forwards {

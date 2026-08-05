@@ -4,9 +4,9 @@
 package utility
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
@@ -23,39 +23,36 @@ func ExpandPath(ePath string) string {
 }
 
 func (v *VmwarePaths) Load() error {
-	var access uint32 = registry.QUERY_VALUE
+	var access uint32
 	progDataPath := ""
+	var regKey registry.Key
+	var err error
+	access = registry.QUERY_VALUE
 
-	// OPTIMIZATION 1: Prioritize native 64-bit registry (Bypasses phantom 32-bit upgrade keys)
-	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
-		`SOFTWARE\VMware, Inc.\VMware Workstation`, access|registry.WOW64_64KEY)
+	// Always try the 64-bit key first, regardless of utility architecture
+	access = access | registry.WOW64_64KEY
 
-	// Fallback for older VMware versions using legacy 32-bit registry
+	regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
+		`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
+
+	// If the 64-bit key failed, fallback to 32-bit key
 	if err != nil {
+		access = registry.QUERY_VALUE | registry.WOW64_32KEY
 		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
 			`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
+		if err != nil {
+			v.logger.Trace("failed to open registry", "error", err)
+			return err
+		}
 	}
 
-	if err != nil {
-		v.logger.Error("failed to open registry for VMware Workstation path detection", "error", err)
-		return fmt.Errorf("failed to open registry for VMware Workstation path detection: %w", err)
-	}
 	defer regKey.Close()
-
 	regVal, _, err := regKey.GetStringValue("InstallPath")
 	if err != nil {
-		v.logger.Error("failed to locate registry key InstallPath", "error", err)
-		return fmt.Errorf("failed to locate registry key InstallPath: %w", err)
+		v.logger.Trace("failed to locate registry key", "key", "InstallPath", "error", err)
+		return err
 	}
 	v.InstallDir = regVal
-
-	productVersion, _, err := regKey.GetStringValue("ProductVersion")
-	if err != nil {
-		v.logger.Error("failed to locate registry key ProductVersion", "error", err)
-	} else {
-		v.logger.Trace("found product version", "version", productVersion)
-	}
-
 	pRegKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList`, registry.QUERY_VALUE)
 	if err == nil {
@@ -63,7 +60,6 @@ func (v *VmwarePaths) Load() error {
 		if err == nil {
 			progDataPath = pRegVal
 		}
-		pRegKey.Close()
 	}
 	if progDataPath == "" {
 		progDataPath = os.Getenv("ProgramData")
@@ -75,28 +71,12 @@ func (v *VmwarePaths) Load() error {
 	v.NatConf = filepath.Join(progDataPath, "VMware", "vmnetnat.conf")
 	v.Networking = filepath.Join(progDataPath, "VMware", "netmap.conf")
 	v.DhcpLease = filepath.Join(progDataPath, "VMware", "vmnetdhcp.leases")
-
-	// OPTIMIZATION 2: Graceful binary resolution
-	checkPath := func(filename string, optional bool) string {
-		fullPath := filepath.Join(v.InstallDir, filename)
-		if _, err := os.Stat(fullPath); err != nil {
-			if optional {
-				v.logger.Trace("optional binary not found or inaccessible, skipping", "path", fullPath, "error", err)
-				return ""
-			}
-		}
-		return fullPath
-	}
-
-	// Mandatory core binaries (Will still allow hard-failure if missing)
-	v.Vmrun = checkPath("vmrun.exe", false)
-	v.Vmx = checkPath(filepath.Join("x64", "vmware-vmx.exe"), false)
-	v.Vnetlib = checkPath("vnetlib.exe", false)
-	v.Vdiskmanager = checkPath("vmware-vdiskmanager.exe", false)
-
-	// Optional binaries (Will gracefully degrade if Broadcom drops them)
-	v.VmnetCli = checkPath("vmnetcli.exe", true)
-	v.Vmrest = checkPath("vmrest.exe", true)
+	v.VmnetCli = filepath.Join(v.InstallDir, "vmnetcli.exe")
+	v.Vnetlib = filepath.Join(v.InstallDir, "vnetlib.exe")
+	v.Vmrun = filepath.Join(v.InstallDir, "vmrun.exe")
+	v.Vmrest = filepath.Join(v.InstallDir, "vmrest.exe")
+	v.Vmx = filepath.Join(v.InstallDir, "x64", "vmware-vmx.exe")
+	v.Vdiskmanager = filepath.Join(v.InstallDir, "vmware-vdiskmanager.exe")
 
 	return nil
 }
