@@ -6,7 +6,6 @@ package utility
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
