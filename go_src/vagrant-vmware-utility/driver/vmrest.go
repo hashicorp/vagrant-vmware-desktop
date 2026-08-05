@@ -276,7 +276,11 @@ func (v *vmrest) homedStart(cmd *exec.Cmd) error {
 		defer os.Setenv(HOME_DIR_ENV, curHome)
 	}
 
-	return cmd.Start()
+	err := cmd.Start()
+	if err != nil {
+		return fmt.Errorf("failed executing command %q: %w", cmd.Path, err)
+	}
+	return nil
 }
 
 func (v *vmrest) configure() (err error) {
