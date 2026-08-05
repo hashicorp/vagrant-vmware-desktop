@@ -322,5 +322,10 @@ func (v *VnetlibExe) GetUnusedDevice() (devName string, err error) {
 }
 
 func (v *VnetlibExe) runcmd(args ...string) (exitCode int, output string) {
-	return utility.ExecuteWithOutput(v.buildCommand(args...))
+	cmd := v.buildCommand(args...)
+	exitCode, output = utility.ExecuteWithOutput(cmd)
+	if exitCode != 0 {
+		v.logger.Error("failed executing command", "cmd", cmd.Path, "exitcode", exitCode, "output", output)
+	}
+	return exitCode, output
 }

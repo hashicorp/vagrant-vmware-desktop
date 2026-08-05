@@ -123,7 +123,7 @@ func (v *VmnetCliExe) Configure(path string) (err error) {
 		if exitCode != 0 {
 			v.logger.Debug("service configure failed", "exitcode", exitCode)
 			v.logger.Trace("service failure", "output", out)
-			err = errors.New("Failed to configure vmnet service")
+			err = fmt.Errorf("failed executing command %q: %s", cmd.Path, "Failed to configure vmnet service")
 		}
 	})
 	return err
@@ -139,7 +139,7 @@ func (v *VmnetCliExe) stop() (err error) {
 	if exitCode != 0 {
 		v.logger.Debug("service stop failed", "exitcode", exitCode)
 		v.logger.Trace("service failure", "output", out)
-		err = errors.New("Failed to stop vmnet service")
+		err = fmt.Errorf("failed executing command %q: %s", cmd.Path, "Failed to stop vmnet service")
 	}
 	// Ensure things are dead
 	cmd = exec.Command("/usr/bin/pkill", "vmnet-natd", "vmnet-bridge", "vmnet-dhcpd")
@@ -158,7 +158,7 @@ func (v *VmnetCliExe) start() (err error) {
 	if exitCode != 0 {
 		v.logger.Debug("service start failed", "exitcode", exitCode)
 		v.logger.Trace("service failure", "output", out)
-		err = errors.New("Failed to start vmnet service")
+		err = fmt.Errorf("failed executing command %q: %s", cmd.Path, "Failed to start vmnet service")
 	}
 	return err
 }
