@@ -74,8 +74,10 @@ func (c *RestApiCommand) Run(args []string) int {
 	restApi, err := c.buildRestApi(c.Config.Driver, c.Config.Port)
 	if err != nil {
 		if c.Config.LogDisplay {
+			panic(err)
 			c.logger.Error("api setup failure", "error", err)
 		} else {
+			panic(err)
 			c.UI.Error("Failed to setup Vagrant VMWare API service - " + err.Error())
 		}
 		return exitCode
