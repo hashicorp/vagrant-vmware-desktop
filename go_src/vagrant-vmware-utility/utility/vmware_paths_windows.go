@@ -1,9 +1,9 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
-
 package utility
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,30 +26,35 @@ func (v *VmwarePaths) Load() error {
 	progDataPath := ""
 	var regKey registry.Key
 	var err error
-	access = registry.QUERY_VALUE
 
-	// Always try the 64-bit key first, regardless of utility architecture
-	access = access | registry.WOW64_64KEY
+	pathsToCheck := []struct {
+		path string
+		flag uint32
+	}{
+		{`SOFTWARE\VMware, Inc.\VMware Workstation`, registry.WOW64_64KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Workstation`, registry.WOW64_32KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Player`, registry.WOW64_64KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Player`, registry.WOW64_32KEY},
+	}
 
-	regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
-		`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
-
-	// If the 64-bit key failed, fallback to 32-bit key
-	if err != nil {
-		access = registry.QUERY_VALUE | registry.WOW64_32KEY
-		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE,
-			`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
-		if err != nil {
-			v.logger.Trace("failed to open registry", "error", err)
-			return err
+	for _, p := range pathsToCheck {
+		access = registry.QUERY_VALUE | p.flag
+		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE, p.path, access)
+		if err == nil {
+			break
 		}
+	}
+
+	if err != nil {
+		v.logger.Trace("failed to open registry", "error", err)
+		return fmt.Errorf("failed to locate VMware Workstation or Player in registry: %w", err)
 	}
 
 	defer regKey.Close()
 	regVal, _, err := regKey.GetStringValue("InstallPath")
 	if err != nil {
 		v.logger.Trace("failed to locate registry key", "key", "InstallPath", "error", err)
-		return err
+		return fmt.Errorf("failed to read InstallPath string from registry: %w", err)
 	}
 	v.InstallDir = regVal
 	pRegKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
