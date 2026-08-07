@@ -75,12 +75,27 @@ func (v *VmwarePaths) Load() error {
 	v.NatConf = filepath.Join(progDataPath, "VMware", "vmnetnat.conf")
 	v.Networking = filepath.Join(progDataPath, "VMware", "netmap.conf")
 	v.DhcpLease = filepath.Join(progDataPath, "VMware", "vmnetdhcp.leases")
-	v.VmnetCli = filepath.Join(v.InstallDir, "vmnetcli.exe")
-	v.Vnetlib = filepath.Join(v.InstallDir, "vnetlib.exe")
-	v.Vmrun = filepath.Join(v.InstallDir, "vmrun.exe")
-	v.Vmrest = filepath.Join(v.InstallDir, "vmrest.exe")
-	v.Vmx = filepath.Join(v.InstallDir, "x64", "vmware-vmx.exe")
-	v.Vdiskmanager = filepath.Join(v.InstallDir, "vmware-vdiskmanager.exe")
+
+	checkPath := func(filename string, optional bool) string {
+		fullPath := filepath.Join(v.InstallDir, filename)
+		if _, err := os.Stat(fullPath); err != nil {
+			if optional {
+				v.logger.Trace("optional binary not found, skipping", "path", fullPath)
+				return ""
+			}
+		}
+		return fullPath
+	}
+
+	// Mandatory core binaries
+	v.Vmrun = checkPath("vmrun.exe", false)
+	v.Vmx = checkPath(filepath.Join("x64", "vmware-vmx.exe"), false)
+	v.Vnetlib = checkPath("vnetlib.exe", false)
+	v.Vdiskmanager = checkPath("vmware-vdiskmanager.exe", false)
+
+	// Optional binaries (Graceful fallback)
+	v.VmnetCli = checkPath("vmnetcli.exe", true)
+	v.Vmrest = checkPath("vmrest.exe", true)
 
 	return nil
 }
