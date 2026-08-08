@@ -243,24 +243,28 @@ func (b *BaseDriver) PortFwds(device string) (pfwds *PortFwds, err error) {
 func (b *BaseDriver) VmwareInfo() (*VmwareInfo, error) {
 	var access uint32
 	access = registry.QUERY_VALUE
-	if runtime.GOARCH == "amd64" {
-		access = access | registry.WOW64_32KEY
-	}
 	corePath := `SOFTWARE\VMware, Inc.`
-	coreKey, err := registry.OpenKey(registry.LOCAL_MACHINE, corePath, access)
+
+	// Ensure WOW64_64KEY is checked first on Windows to avoid WOW32 redirection
+	coreKey, err := registry.OpenKey(registry.LOCAL_MACHINE, corePath, access|registry.WOW64_64KEY)
+	if err != nil {
+		coreKey, err = registry.OpenKey(registry.LOCAL_MACHINE, corePath, access|registry.WOW64_32KEY)
+	}
 	if err != nil {
 		b.logger.Trace("vmware core info registry open", "path", corePath, "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed accessing path %q: %w", corePath, err)
 	}
 	product, _, err := coreKey.GetStringValue("Core")
 	if err != nil {
 		b.logger.Trace("vmware core info registry read", "path", corePath, "key", "Core",
 			"error", err)
-		return nil, err
 		product = `VMware Workstation`
 	}
 	vmwarePath := corePath + `\` + product
-	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE, vmwarePath, access)
+	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE, vmwarePath, access|registry.WOW64_64KEY)
+	if err != nil {
+		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE, vmwarePath, access|registry.WOW64_32KEY)
+	}
 	if err != nil {
 		b.logger.Trace("vmware info registry open", "path", vmwarePath, "error", err)
 		return nil, err
