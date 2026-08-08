@@ -44,25 +44,21 @@ func NewBaseDriver(vmxPath *string, licenseOverride string, logger hclog.Logger)
 	logger.Info("created", "vmx", vmxPath)
 	paths, err := utility.LoadVmwarePaths(logger)
 	if err != nil {
-		panic(fmt.Errorf("Step 1 (LoadVmwarePaths) failed: %w", err))
 		logger.Error("path loading failure", "error", err)
 		return nil, err
 	}
 	vmrun, err := service.NewVmrun(paths.Vmrun, logger)
 	if err != nil {
-		panic(fmt.Errorf("Step 2 (NewVmrun) failed: %w", err))
 		logger.Error("vmrun setup failure", "error", err)
 		return nil, err
 	}
 	vmsrv, err := service.NewVmwareServices(paths.Services, logger)
 	if err != nil {
-		panic(fmt.Errorf("Step 3 (NewVmwareServices) failed: %w", err))
 		logger.Error("vmware services setup failure", "error", err)
 		return nil, err
 	}
 	s, err := settings.BuildSettings(logger)
 	if err != nil {
-		panic(fmt.Errorf("Step 4 (BuildSettings) failed: %w", err))
 		logger.Error("settings setup failure", "error", err)
 		return nil, err
 	}
@@ -81,7 +77,6 @@ func NewBaseDriver(vmxPath *string, licenseOverride string, logger hclog.Logger)
 		drv.VmwareServices,
 		logger)
 	if err != nil {
-		panic(fmt.Errorf("Step 5 (NewVmnetCli) failed: %w", err))
 		logger.Error("vmnet-cli creation failure", "error", err)
 		return nil, err
 	}

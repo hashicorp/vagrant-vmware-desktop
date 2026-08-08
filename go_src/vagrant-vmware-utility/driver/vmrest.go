@@ -433,6 +433,12 @@ func NewVmrestDriver(ctx context.Context, f Driver, logger hclog.Logger) (d Driv
 		return f, nil
 	}
 	logger.Debug("attempting to setup vmrest")
+
+	if f.VmwarePaths().Vmrest == "" {
+		logger.Info("vmrest executable not found, gracefully bypassing driver upgrade")
+		return f, nil
+	}
+
 	v, err := NewVmrest(ctx, f.VmwarePaths().Vmrest, logger)
 	if err != nil {
 		logger.Warn("failed to create vmrest driver", "error", err)

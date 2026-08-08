@@ -31,7 +31,10 @@ type VmnetCliExe struct {
 }
 
 func NewVmnetCli(path string, services VmwareServices, logger hclog.Logger) (VmnetCli, error) {
-	if !utility.RootOwned(path, true) {
+	if _, err := os.Stat(path); os.IsNotExist(err) && path != "" {
+		logger.Info("vmnetcli executable not found, gracefully bypassing initialization (expected on Windows 26H1+)", "path", path)
+		path = "" // Effectively disable it
+	} else if !utility.RootOwned(path, true) {
 		return nil, errors.New("Failed to locate valid vmnet executable")
 	}
 	logger = logger.Named("vmnetcli")
