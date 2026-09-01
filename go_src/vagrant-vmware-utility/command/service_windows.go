@@ -17,6 +17,11 @@ import (
 
 const WINDOWS_SERVICE_NAME = "VagrantVMware"
 
+func buildServiceBinaryPathName(exePath, configPath, logPath string) string {
+	return fmt.Sprintf(`"%s" service run -config-file="%s" -log-file="%s"`,
+		exePath, configPath, logPath)
+}
+
 func (c *ServiceInstallCommand) install() error {
 	exePath, err := os.Executable()
 	if err != nil {
@@ -35,8 +40,7 @@ func (c *ServiceInstallCommand) install() error {
 		return err
 	}
 	defer m.Disconnect()
-	cmd := fmt.Sprintf(`%s service run -config-file="%s" -log-file="%s"`,
-		exePath, config, log)
+	cmd := buildServiceBinaryPathName(exePath, config, log)
 	s, err := m.Get(WINDOWS_SERVICE_NAME)
 	if err == nil {
 		defer s.Close()
@@ -47,7 +51,7 @@ func (c *ServiceInstallCommand) install() error {
 				StartType:      mgr.StartAutomatic,
 				DisplayName:    c.Name,
 				Description:    "Vagrant VMware Utility REST API",
-				BinaryPathName: exePath})
+				BinaryPathName: fmt.Sprintf(`"%s"`, exePath)})
 		if err != nil {
 			c.logger.Debug("service create failure", "name", WINDOWS_SERVICE_NAME,
 				"error", err)
