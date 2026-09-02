@@ -1,12 +1,11 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
-
 package utility
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
@@ -25,21 +24,37 @@ func ExpandPath(ePath string) string {
 func (v *VmwarePaths) Load() error {
 	var access uint32
 	progDataPath := ""
-	access = registry.QUERY_VALUE
-	if runtime.GOARCH == "amd64" {
-		access = access | registry.WOW64_32KEY
+	var regKey registry.Key
+	var err error
+
+	pathsToCheck := []struct {
+		path string
+		flag uint32
+	}{
+		{`SOFTWARE\VMware, Inc.\VMware Workstation`, registry.WOW64_64KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Workstation`, registry.WOW64_32KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Player`, registry.WOW64_64KEY},
+		{`SOFTWARE\VMware, Inc.\VMware Player`, registry.WOW64_32KEY},
 	}
-	regKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
-		`SOFTWARE\VMware, Inc.\VMware Workstation`, access)
+
+	for _, p := range pathsToCheck {
+		access = registry.QUERY_VALUE | p.flag
+		regKey, err = registry.OpenKey(registry.LOCAL_MACHINE, p.path, access)
+		if err == nil {
+			break
+		}
+	}
+
 	if err != nil {
 		v.logger.Trace("failed to open registry", "error", err)
-		return err
+		return fmt.Errorf("failed to locate VMware Workstation or Player in registry: %w", err)
 	}
+
 	defer regKey.Close()
 	regVal, _, err := regKey.GetStringValue("InstallPath")
 	if err != nil {
 		v.logger.Trace("failed to locate registry key", "key", "InstallPath", "error", err)
-		return err
+		return fmt.Errorf("failed to read InstallPath string from registry: %w", err)
 	}
 	v.InstallDir = regVal
 	pRegKey, err := registry.OpenKey(registry.LOCAL_MACHINE,
@@ -60,12 +75,27 @@ func (v *VmwarePaths) Load() error {
 	v.NatConf = filepath.Join(progDataPath, "VMware", "vmnetnat.conf")
 	v.Networking = filepath.Join(progDataPath, "VMware", "netmap.conf")
 	v.DhcpLease = filepath.Join(progDataPath, "VMware", "vmnetdhcp.leases")
-	v.VmnetCli = filepath.Join(v.InstallDir, "vmnetcli.exe")
-	v.Vnetlib = filepath.Join(v.InstallDir, "vnetlib.exe")
-	v.Vmrun = filepath.Join(v.InstallDir, "vmrun.exe")
-	v.Vmrest = filepath.Join(v.InstallDir, "vmrest.exe")
-	v.Vmx = filepath.Join(v.InstallDir, "x64", "vmware-vmx.exe")
-	v.Vdiskmanager = filepath.Join(v.InstallDir, "vmware-vdiskmanager.exe")
+
+	checkPath := func(filename string, optional bool) string {
+		fullPath := filepath.Join(v.InstallDir, filename)
+		if _, err := os.Stat(fullPath); err != nil {
+			if optional {
+				v.logger.Trace("optional binary not found, skipping", "path", fullPath)
+				return ""
+			}
+		}
+		return fullPath
+	}
+
+	// Mandatory core binaries
+	v.Vmrun = checkPath("vmrun.exe", false)
+	v.Vmx = checkPath(filepath.Join("x64", "vmware-vmx.exe"), false)
+	v.Vnetlib = checkPath("vnetlib.exe", false)
+	v.Vdiskmanager = checkPath("vmware-vdiskmanager.exe", false)
+
+	// Optional binaries (Graceful fallback)
+	v.VmnetCli = checkPath("vmnetcli.exe", true)
+	v.Vmrest = checkPath("vmrest.exe", true)
 
 	return nil
 }
