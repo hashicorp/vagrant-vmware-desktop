@@ -1,6 +1,8 @@
 # Copyright IBM Corp. 2021, 2025
 # SPDX-License-Identifier: MPL-2.0
 
+require "digest"
+
 module HashiCorp
   module VagrantVMwareDesktop
     module GuestCap
@@ -116,10 +118,20 @@ module HashiCorp
               # entire shared host (not just an individual folder) with uid and gid applied. The
               # container directory is only accessible via root, and the bind mounts result in the
               # expected behavior.
-              current_mount_point = "#{VAGRANT_ROOT_MOUNT_POINT}/#{uid}-#{gid}"
+              extra_mount_options = []
+              extra_mount_options << options[:extra] if options[:extra]
+              extra_mount_options.concat(Array(options[:mount_options]))
               hgfs_mount_options = "allow_other,default_permissions,uid=#{uid},gid=#{gid}"
-              hgfs_mount_options << ",#{options[:extra]}" if options[:extra]
-              hgfs_mount_options << ",#{Array(options[:mount_options]).join(',')}" if !Array(options[:mount_options]).empty?
+              hgfs_mount_options << ",#{extra_mount_options.join(',')}" if !extra_mount_options.empty?
+
+              # The host mount is shared by every folder with the same uid/gid, so
+              # folders that need different vmhgfs-fuse options (for example fmask
+              # or dmask) get their own mount point. Folders without extra options
+              # keep using the plain uid-gid mount point.
+              current_mount_point = "#{VAGRANT_ROOT_MOUNT_POINT}/#{uid}-#{gid}"
+              if !extra_mount_options.empty?
+                current_mount_point << "-#{Digest::SHA256.hexdigest(extra_mount_options.join(','))[0, 16]}"
+              end
               hgfs_mount = "vmhgfs-fuse -o #{hgfs_mount_options} .host:/ '#{current_mount_point}'"
 
               # Allow user to disable unmounting of default vmhgfs-fuse mount point at /mnt/hgfs
