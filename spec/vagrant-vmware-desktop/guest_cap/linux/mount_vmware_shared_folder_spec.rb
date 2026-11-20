@@ -175,5 +175,49 @@ describe HashiCorp::VagrantVMwareDesktop::GuestCap::Linux::MountVMwareSharedFold
       expect(communicator).to receive(:sudo).with(/mount --bind/)
       described_class.mount_vmware_shared_folder(machine, name, guestpath, options)
     end
+
+    it "should use the uid-gid mount point when no mount options are provided" do
+      expect(communicator).to receive(:sudo).with(%r{vmhgfs-fuse -o allow_other,default_permissions,uid=1,gid=1 \.host:/ '/mnt/vagrant-mounts/1-1'})
+      expect(communicator).to receive(:sudo).with(%r{mount --bind '/mnt/vagrant-mounts/1-1/#{name}'})
+      described_class.mount_vmware_shared_folder(machine, name, guestpath, options)
+    end
+
+    context "when mount options are provided" do
+      before { options[:mount_options] = ["fmask=333", "dmask=222"] }
+
+      def mount_points(machine, name, guestpath, options)
+        points = []
+        allow(communicator).to receive(:sudo) do |cmd, *_|
+          points << cmd[%r{vmhgfs-fuse .* '(/mnt/vagrant-mounts/[^']+)'}, 1] if cmd.include?("vmhgfs-fuse")
+        end
+        described_class.mount_vmware_shared_folder(machine, name, guestpath, options)
+        points.compact
+      end
+
+      it "should pass the mount options to vmhgfs-fuse" do
+        expect(communicator).to receive(:sudo).with(/vmhgfs-fuse -o allow_other,default_permissions,uid=1,gid=1,fmask=333,dmask=222 /)
+        described_class.mount_vmware_shared_folder(machine, name, guestpath, options)
+      end
+
+      it "should not reuse the mount point of folders without mount options" do
+        with_options = mount_points(machine, name, guestpath, options)
+        without_options = mount_points(machine, name, guestpath, {owner: 1, group: 1})
+        expect(with_options.size).to eq(1)
+        expect(with_options.first).to start_with("/mnt/vagrant-mounts/1-1-")
+        expect(with_options).not_to eq(without_options)
+      end
+
+      it "should bind mount from the mount point that has the options" do
+        point = mount_points(machine, name, guestpath, options).first
+        expect(communicator).to receive(:sudo).with("mount --bind '#{point}/#{name}' '#{expanded_path}'")
+        described_class.mount_vmware_shared_folder(machine, name, guestpath, options)
+      end
+
+      it "should use the same mount point for the same mount options" do
+        first = mount_points(machine, name, guestpath, options)
+        second = mount_points(machine, "OTHER_SHARE", "/other/path", {owner: 1, group: 1, mount_options: ["fmask=333", "dmask=222"]})
+        expect(first).to eq(second)
+      end
+    end
   end
 end
